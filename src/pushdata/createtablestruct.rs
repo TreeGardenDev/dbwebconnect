@@ -78,7 +78,7 @@ use crate::pushdata;
 //    pushdata::execute_insert(data, tablename,connection, vecty);
 //    Ok(())
 //}
-pub fn read_csv2(file: &String) -> std::result::Result<(), Box<dyn std::error::Error>> {
+pub fn read_csv2(file: &String, tablename:&String) -> std::result::Result<(), Box<dyn std::error::Error>> {
     //fn read_csv() ->Vec<Data> {
     let mut rdr = Reader::from_path(file)?;
     let mut combinedcol=Vec::new();

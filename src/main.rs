@@ -28,7 +28,7 @@ async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string());
+        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), &form.table.to_string());
     }
     else if form.method=="create"{
         let mut connection=dbconnect::database_connection();
@@ -42,7 +42,7 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .body(result)
 }
 #[derive(Serialize, Deserialize)]
-struct FormData {
+pub struct FormData {
     method: String,
     table: String,
     csvpath: std::path::PathBuf,
