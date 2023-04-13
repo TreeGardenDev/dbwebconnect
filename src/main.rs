@@ -17,7 +17,7 @@ async fn main() {
             .route("/method", web::post().to(method))
     });
     println!("Starting server at localhost:8080");
-    server.bind("127.0.0.1:8080").expect("Can not bind to port 8080").run().await.unwrap();
+    server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn index()->impl Responder{
     HttpResponse::Ok()
