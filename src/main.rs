@@ -23,6 +23,8 @@ async fn index()->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
+        //.content_type("text/css")
+        //.body(include_str!("pages/mystyle.css"))
  }
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
