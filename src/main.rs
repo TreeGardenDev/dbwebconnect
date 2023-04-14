@@ -17,18 +17,20 @@ async fn main() {
             .route("/method", web::post().to(method))
     });
     println!("Starting server at localhost:8080");
-    server.bind("127.0.0.1:8080").expect("Can not bind to port 8080").run().await.unwrap();
+    server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn index()->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
+        //.content_type("text/css")
+        //.body(include_str!("pages/mystyle.css"))
  }
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string());
+        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string());
     }
     else if form.method=="create"{
         let mut connection=dbconnect::database_connection();
@@ -42,7 +44,7 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .body(result)
 }
 #[derive(Serialize, Deserialize)]
-struct FormData {
+pub struct FormData {
     method: String,
     table: String,
     csvpath: std::path::PathBuf,
