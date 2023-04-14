@@ -39,9 +39,11 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         tablecreate::create_table(&mut connection,&tablename,&columns);
     }
 
+    println!("{}",result);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(result)
+        .body(include_str!("pages/methodsuccess.html"))
+
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
