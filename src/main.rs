@@ -36,8 +36,8 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         let mut connection=dbconnect::database_connection();
         let tablename=&form.table.to_string();
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        getfields::read_types(&form.csvpath.display().to_string());
-        tablecreate::create_table(&mut connection,&tablename,&columns);
+        let types=getfields::read_types(&form.csvpath.display().to_string());
+        tablecreate::create_table(&mut connection,&tablename,&columns,&types);
     }
 
     println!("{}",result);
