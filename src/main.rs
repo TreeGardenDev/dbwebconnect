@@ -15,6 +15,8 @@ async fn main() {
         App::new()
             .route("/", web::get().to(index))
             .route("/method", web::post().to(method))
+            .route("/insert", web::post().to(method))
+            .route("/create", web::post().to(method))
     });
     println!("Starting server at localhost:8080");
     server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
