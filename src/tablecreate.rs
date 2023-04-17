@@ -11,6 +11,8 @@ pub fn create_table(conn: &mut PooledConn, table_name: &str, column_names: &Vec<
         query.push_str(column_names[i].as_str());
         query.push_str(" ");
         query.push_str(column_types[i].as_str());
+        query.push_str(", ");
+
     }
     query.pop();
     query.push_str(")");
