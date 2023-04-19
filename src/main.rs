@@ -8,6 +8,7 @@ pub mod pushdata;
 pub mod getfields;
 pub mod tablecreate;
 pub mod dbconnect;
+pub mod createdatabase;
 
 #[actix_web::main]
 async fn main() {
@@ -40,6 +41,11 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
         let types=getfields::read_types(&form.csvpath.display().to_string());
         tablecreate::create_table(&mut connection,&tablename,&columns,&types);
+    }
+    else if form.method=="newdb"{
+        let mut database_name=form.table.to_string();
+        createdatabase::create_database(&mut database_name);
+
     }
 
     println!("{}",result);
