@@ -8,6 +8,7 @@ pub mod pushdata;
 pub mod getfields;
 pub mod tablecreate;
 pub mod dbconnect;
+pub mod createdatabase;
 
 #[actix_web::main]
 async fn main() {
@@ -32,14 +33,18 @@ async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string());
+        pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string(), &form.database.to_string());
     }
     else if form.method=="create"{
-        let mut connection=dbconnect::database_connection();
+        let mut connection=dbconnect::database_connection(&form.database.to_string());
         let tablename=&form.table.to_string();
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
         let types=getfields::read_types(&form.csvpath.display().to_string());
         tablecreate::create_table(&mut connection,&tablename,&columns,&types);
+    }
+    else if form.method=="newdb"{
+        createdatabase::create_database(&form.database.to_string());
+
     }
 
     println!("{}",result);
@@ -51,6 +56,7 @@ async fn method(form: web::Form<FormData>)->impl Responder{
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
     method: String,
+    database: String,
     table: String,
     csvpath: std::path::PathBuf,
 }
