@@ -5,7 +5,7 @@ use crate::Data2;
 use crate::Reader;
 use crate::Table;
 use crate::pushdata;
-pub fn read_csv2(file: &String, tablename:String) -> std::result::Result<(), Box<dyn std::error::Error>> {
+pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::result::Result<(), Box<dyn std::error::Error>> {
     //fn read_csv() ->Vec<Data> {
     let mut rdr = Reader::from_path(file)?;
     let mut combinedcol=Vec::new();
@@ -59,7 +59,7 @@ pub fn read_csv2(file: &String, tablename:String) -> std::result::Result<(), Box
     
    // println!("{:?}", data);
     //let tablename= std::env::args().nth(2).expect("No Table");
-    let connection = crate::dbconnect::database_connection();
+    let connection = crate::dbconnect::database_connection(database);
     pushdata::execute_insert2(data, tablename,connection, vecty);
     Ok(())
 }
