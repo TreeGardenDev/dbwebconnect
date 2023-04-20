@@ -24,8 +24,13 @@ input {
 
 <form action="/method" method="post">
 	<!--add labels for each input type-->
-		<label for="method">Method</label>
-		<input type="text" name="method"/>
+	<label for="method">Method</label>
+	<select name="method" id="method">
+        <option value="insert">Insert</option>
+        <option value="create">Create</option>
+        <option value="newdb">New Database</option>
+      </select>
+		<!--><input type="text" name="method"/>-->
 		<label for="database">Database</label>
 		<input type="text" name="database" />
 		<label for="table">Table</label>
