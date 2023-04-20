@@ -20,10 +20,16 @@ input {
 <title>Inspection Form Insert</title>
 <!-- link pages/mystyle.css-->
 <!--add buttons for create and insert method-->
+
 <form action="/method" method="post">
-		<input type="text" name="method" />
+	<!--add labels for each input type-->
+		<label for="method">Method</label>
+		<input type="text" name="method"/>
+		<label for="database">Database</label>
 		<input type="text" name="database" />
+		<label for="table">Table</label>
 		<input type="text" name="table" />
+		<label for="csvpath">CSV Path</label>
 		<input type="text" name="csvpath" />
 		<button type="submit">Insert Data</button>
 </form>
