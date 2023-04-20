@@ -1,9 +1,12 @@
 use mysql::prelude::*;
 use crate::Data2;
 use mysql::*;
-pub fn get_table_col(conn: &mut PooledConn, table_name: &str)
+pub fn get_table_col(conn: &mut PooledConn, table_name: &str, database_name: &str)
  -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-   let mut querystring:String=String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='");
+   let mut querystring:String=String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
+   querystring.push_str(database_name.to_string().as_str());
+   querystring.push_str("' AND TABLE_NAME='");
+       //testcsv' AND TABLE_NAME='");
    querystring.push_str(table_name.to_string().as_str());
    querystring.push_str("'");
     //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
@@ -14,12 +17,12 @@ pub fn get_table_col(conn: &mut PooledConn, table_name: &str)
 }
 
 
-pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<Data2>) -> String
+pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<Data2>, database: &str) -> String
 {
     let mut insertstatement = String::from("insert into ");
     insertstatement.push_str(table_name);
     insertstatement.push_str(" (");
-    let mut col_vec = get_table_col(conn, table_name).unwrap();
+    let mut col_vec = get_table_col(conn, table_name, database).unwrap();
     for col in &col_vec {
         insertstatement.push_str(&col);
         insertstatement.push_str(",");

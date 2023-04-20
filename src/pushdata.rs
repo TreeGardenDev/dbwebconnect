@@ -17,11 +17,12 @@ fn execute_insert2(
     tablename: String,
     mut conn: PooledConn,
     columnames: Vec<&str>,
+    database: String,
 ) -> std::result::Result<(), Box<dyn std::error::Error>> {
     
-    let columname: Vec<String> = gettablecol::get_table_col(&mut conn, &tablename).unwrap();
+    let columname: Vec<String> = gettablecol::get_table_col(&mut conn, &tablename, &database).unwrap();
     println!("{:?}", columname);
-    let insertstatement =gettablecol::createinsertstatement(&mut conn, &tablename, data);
+    let insertstatement =gettablecol::createinsertstatement(&mut conn, &tablename, data, &database);
     println!("{}", insertstatement);
 
     conn.query_drop(insertstatement)?;
