@@ -53,7 +53,7 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         let tablename=&form.table.to_string();
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         //let types=getfields::read_types(&form.csvpath.display().to_string());
-        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string());
+        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string()).unwrap();
         println!("{:?}",queryresult);
 
     }
