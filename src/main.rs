@@ -9,6 +9,8 @@ pub mod getfields;
 pub mod tablecreate;
 pub mod dbconnect;
 pub mod createdatabase;
+pub mod querytable;
+
 
 #[actix_web::main]
 async fn main() {
@@ -45,6 +47,18 @@ async fn method(form: web::Form<FormData>)->impl Responder{
     else if form.method=="newdb"{
         createdatabase::create_database(&form.database.to_string());
 
+    }
+    else if form.method=="query"{
+        let mut connection=dbconnect::database_connection(&form.database.to_string());
+        let tablename=&form.table.to_string();
+        //let columns=getfields::read_fields(&form.csvpath.display().to_string());
+        //let types=getfields::read_types(&form.csvpath.display().to_string());
+        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string());
+        println!("{:?}",queryresult);
+
+    }
+    else{
+        println!("No method selected");
     }
 
     println!("{}",result);
