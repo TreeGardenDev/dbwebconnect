@@ -17,7 +17,8 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
     let columndata=vec![columns,columntypes];
     //query table with columns in columns vector and type in columntypes vector
 
-    columndata
+    let querydata = query_table(conn, table, whereclause, database).unwrap();
+   querydata 
     
 }
 
@@ -28,6 +29,18 @@ fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::
     query.push_str(table);
     query.push_str("'");
     let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
+
+    Ok(stmt)
+}
+
+fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: &str) -> std::result::Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+    let mut query= String::from("SELECT * FROM ");
+    query.push_str(table);
+    if whereclause != "" {
+        query.push_str(" WHERE ");
+        query.push_str(whereclause);
+    }
+    let stmt: Vec<Vec<String>> = conn.query_map(query, |(col1, col2, col3, col4, col5, col6, col7, col8, col9)|vec![col1, col2, col3, col4, col5, col6, col7, col8, col9])?; //??
 
     Ok(stmt)
 }
