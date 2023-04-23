@@ -1,11 +1,18 @@
 
-pub fn buildhtml(querydata: Vec<Vec<String>>)->String{
+pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str)->String{
     let mut html = String::new();
     html.push_str("<html><head><title>Query Results</title>");
     html.push_str("<style>table, th, td {border: 1px solid black;}
         body{background-color: linen}</style>");
 
-    html.push_str("</head><body><table>");
+    html.push_str("</head><body>");
+    html.push_str("<h1>");
+    html.push_str("Query Results for ");
+    html.push_str(database);
+    html.push_str(".");
+    html.push_str(table);
+    html.push_str("</h1>");
+    html.push_str("<table>");
     for row in querydata{
         html.push_str("<tr>");
         for col in row{
