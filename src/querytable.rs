@@ -1,7 +1,7 @@
 use mysql::prelude::*;
 use mysql::*;
 use crate::pushdata::gettablecol;
-
+pub mod displayquery;
 pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str)-> Vec<Vec<String>>{
     let mut query= String::from("SELECT * FROM ");
     query.push_str(table);

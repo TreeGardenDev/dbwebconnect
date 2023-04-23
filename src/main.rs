@@ -74,9 +74,10 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         //let types=getfields::read_types(&form.csvpath.display().to_string());
         let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
         println!("{:?}",queryresult);
+        let html=querytable::displayquery::buildhtml(queryresult);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(include_str!("pages/query.html"))
+        .body(html)
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
