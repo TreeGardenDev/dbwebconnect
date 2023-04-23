@@ -18,7 +18,10 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
 
 
     let columndata=vec![columns,columntypes];
+    //query table with columns in columns vector and type in columntypes vector
+
     columndata
+    
 }
 struct columntype{
     column:String,
