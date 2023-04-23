@@ -67,12 +67,12 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .body(include_str!("pages/methodsuccess.html"))
 
 }
-async fn query(form: web::Form<FormData>)->impl Responder{
+async fn query(form: web::Form<QueryData>)->impl Responder{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
         let tablename=&form.table.to_string();
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         //let types=getfields::read_types(&form.csvpath.display().to_string());
-        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string());
+        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
         println!("{:?}",queryresult);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -84,6 +84,12 @@ pub struct FormData {
     database: String,
     table: String,
     csvpath: std::path::PathBuf,
+}
+#[derive(Serialize, Deserialize)]
+pub struct QueryData {
+    database: String,
+    table: String,
+    whereclause: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
