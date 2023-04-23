@@ -17,7 +17,7 @@ async fn main() {
         App::new()
             .route("/", web::get().to(index))
             .route("/method", web::post().to(method))
-            .route("/query", web::get().to(query))
+            .route("/query", web::post().to(query))
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
