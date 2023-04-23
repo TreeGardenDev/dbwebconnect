@@ -17,6 +17,7 @@ async fn main() {
         App::new()
             .route("/", web::get().to(index))
             .route("/method", web::post().to(method))
+            .route("/query", web::get().to(method))
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
@@ -65,6 +66,11 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 
+}
+async fn query()->impl Responder{
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/query.html"))
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
