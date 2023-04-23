@@ -17,8 +17,8 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
     let columndata=vec![columns,columntypes];
     //query table with columns in columns vector and type in columntypes vector
 
-    let querydata = query_table(conn, table, whereclause, database).unwrap();
-   querydata 
+   // let querydata = query_table(conn, table, whereclause, database).unwrap();
+    columndata 
     
 }
 
