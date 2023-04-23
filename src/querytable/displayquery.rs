@@ -12,5 +12,6 @@ pub fn buildhtml(querydata: Vec<Vec<String>>)->String{
         html.push_str("</tr>");
     }
     html.push_str("</table></body></html>");
+    html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
