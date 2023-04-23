@@ -10,9 +10,9 @@ pub fn get_table_col(conn: &mut PooledConn, table_name: &str, database_name: &st
    querystring.push_str(table_name.to_string().as_str());
    querystring.push_str("'");
     //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
-    let columnname = conn.query_map(querystring, |(column_name)| column_name)?;
+    let columnname = conn.query_map(querystring, |column_name| column_name)?;
 
-    Ok((columnname))
+    Ok(columnname)
 
 }
 
@@ -22,7 +22,7 @@ pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<D
     let mut insertstatement = String::from("insert into ");
     insertstatement.push_str(table_name);
     insertstatement.push_str(" (");
-    let mut col_vec = get_table_col(conn, table_name, database).unwrap();
+    let col_vec = get_table_col(conn, table_name, database).unwrap();
     for col in &col_vec {
         insertstatement.push_str(&col);
         insertstatement.push_str(",");

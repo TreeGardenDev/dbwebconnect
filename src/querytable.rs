@@ -1,10 +1,7 @@
 use mysql::prelude::*;
 use mysql::*;
-use serde::{Deserialize, Serialize};
 use crate::pushdata::gettablecol;
-pub struct  querydata<T>{
-    data:Vec<T>
-}
+
 pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str)-> Vec<Vec<String>>{
     let mut query= String::from("SELECT * FROM ");
     query.push_str(table);
@@ -18,21 +15,19 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
 
 
     let columndata=vec![columns,columntypes];
+    //query table with columns in columns vector and type in columntypes vector
+
     columndata
+    
 }
-struct columntype{
-    column:String,
-    datatype:String
-}
+
 fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut query = String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
     query.push_str("'");
-    let mut column: String = String::new();
-    let mut datatype: String = String::new();
-    let mut stmt: Vec<String> = conn.query_map(query, |(datatype)|datatype)?; //??
+    let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
 
-    Ok((stmt))
+    Ok(stmt)
 }
