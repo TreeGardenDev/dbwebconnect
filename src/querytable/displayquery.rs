@@ -1,7 +1,11 @@
 
 pub fn buildhtml(querydata: Vec<Vec<String>>)->String{
     let mut html = String::new();
-    html.push_str("<html><head><title>Query Results</title></head><body><table>");
+    html.push_str("<html><head><title>Query Results</title>");
+    html.push_str("<style>table, th, td {border: 1px solid black;}
+        body{background-color: linen}</style>");
+
+    html.push_str("</head><body><table>");
     for row in querydata{
         html.push_str("<tr>");
         for col in row{
