@@ -7,6 +7,6 @@ pub fn database_connection(database: &str) -> PooledConn {
     //make url usable by pool
     let url = url.as_str();
     let pool = Pool::new(url).unwrap();
-    let mut conn = pool.get_conn().unwrap();
+    let conn = pool.get_conn().unwrap();
     conn
 }

@@ -22,7 +22,7 @@ pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<D
     let mut insertstatement = String::from("insert into ");
     insertstatement.push_str(table_name);
     insertstatement.push_str(" (");
-    let mut col_vec = get_table_col(conn, table_name, database).unwrap();
+    let col_vec = get_table_col(conn, table_name, database).unwrap();
     for col in &col_vec {
         insertstatement.push_str(&col);
         insertstatement.push_str(",");

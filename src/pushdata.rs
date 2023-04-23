@@ -4,9 +4,6 @@ use mysql::prelude::*;
 use mysql::*;
 pub mod gettablecol;
 pub mod createtablestruct;
-#[derive(Debug)] struct InsertData<'a>{
-    data: Vec<&'a str>,
-}
 
 
 fn execute_insert2(

@@ -46,6 +46,6 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
    // println!("{:?}", data);
     //let tablename= std::env::args().nth(2).expect("No Table");
     let connection = crate::dbconnect::database_connection(database);
-    pushdata::execute_insert2(data, tablename,connection, database.to_string());
+    let _ = pushdata::execute_insert2(data, tablename,connection, database.to_string());
     Ok(())
 }
