@@ -1,7 +1,5 @@
 use mysql::prelude::*;
 use mysql::*;
-use csv::Reader;
-use clap::Parser;
 //read from csv file to create table in mariadb with given column names
 pub fn create_table(conn: &mut PooledConn, table_name: &str, column_names: &Vec<String>, column_types: &Vec<String> ){
     let mut query = String::from("CREATE TABLE ");

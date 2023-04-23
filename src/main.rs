@@ -1,6 +1,5 @@
 use clap::Parser;
 use csv::Reader;
-use mysql::prelude::*;
 use mysql::*;
 use serde::{Deserialize, Serialize};
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -34,7 +33,7 @@ async fn index()->impl Responder{
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
-        let columns=getfields::read_fields(&form.csvpath.display().to_string());
+        //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string(), &form.database.to_string());
     }
     else if form.method=="create"{
@@ -77,7 +76,7 @@ pub struct FormData {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Data2{
-    columns: Vec<column>
+    columns: Vec<Column>
 }
 #[derive(Debug, PartialEq, Eq)]
 struct ColData{
@@ -90,9 +89,9 @@ struct CLI{
     table: String,
     path:std::path::PathBuf,
 }
-type column=Vec<String>;
+type Column=Vec<String>;
 
 struct Table{
     tablename: String,
-    columnname:Vec<column>,
+    columnname:Vec<Column>,
 }

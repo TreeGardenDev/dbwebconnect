@@ -1,8 +1,7 @@
 use mysql::prelude::*;
 use mysql::*;
-use serde::{Deserialize, Serialize};
 use crate::pushdata::gettablecol;
-pub struct  querydata<T>{
+pub struct  Querydata<T>{
     data:Vec<T>
 }
 pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str)-> Vec<Vec<String>>{
@@ -23,7 +22,7 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
     columndata
     
 }
-struct columntype{
+struct Columntype{
     column:String,
     datatype:String
 }
@@ -35,7 +34,7 @@ fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::
     query.push_str("'");
     let mut column: String = String::new();
     let mut datatype: String = String::new();
-    let mut stmt: Vec<String> = conn.query_map(query, |(datatype)|datatype)?; //??
+    let mut stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
 
-    Ok((stmt))
+    Ok(stmt)
 }

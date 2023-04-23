@@ -1,4 +1,3 @@
-use crate::ColData;
 use crate::Reader;
 
 

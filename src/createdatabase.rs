@@ -1,6 +1,4 @@
 use mysql::prelude::*;
-use mysql::*;
-use csv::Reader;
 
 //create a mysql database from a csv file
 pub fn create_database(database_name: &str) {
