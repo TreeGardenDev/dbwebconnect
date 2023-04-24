@@ -18,13 +18,13 @@ td { display: block; border: 1px solid black;} body{background-color: linen}</st
         html.push_str(col);
         html.push_str("</th>");
     }
-    for row in querydata{
-        html.push_str("<tr>");
-        for i in &columns{
+      html.push_str("<tr>");
+      for i in &columns{
             html.push_str("<td>");
             html.push_str(&i);
             html.push_str("</td>");
         }
+    for row in querydata{
 
         for col in &row{
             html.push_str("<td>");
