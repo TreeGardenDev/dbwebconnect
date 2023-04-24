@@ -37,21 +37,22 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
         query.push_str(" WHERE ");
         query.push_str(whereclause);
     }
-    let stmt: Vec<Vec<String>> = conn.query_map(query, |(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)|{
-        let mut row: Vec<String> = Vec::new();
-        row.push(col1);
-        row.push(col2);
-        row.push(col3);
-        row.push(col4);
-        row.push(col5);
-        row.push(col6);
-        row.push(col7);
-        row.push(col8);
-        row.push(col9);
-        row.push(col10);
-        row
-    })?; //??
-
+//    let stmt: Vec<Vec<String>> = conn.query_map(query, |(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)|{
+//        let mut row: Vec<String> = Vec::new();
+//        row.push(col1);
+//        row.push(col2);
+//        row.push(col3);
+//        row.push(col4);
+//        row.push(col5);
+//        row.push(col6);
+//        row.push(col7);
+//        row.push(col8);
+//        row.push(col9);
+//        row.push(col10);
+//        row
+//    })?; //??
+    let mut stmt=Vec::new();
+    stmt.push(conn.query_map(query, |(columns)|columns).unwrap()); //
     //let stmt  = conn.query(query).unwrap();
     Ok(stmt)
 }
