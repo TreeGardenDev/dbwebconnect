@@ -52,9 +52,12 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
 //        row
 //    })?; //??
     let mut stmt=Vec::new();
-       let mut row=conn.query_map(query, |(col1)|col1)?; //??
+   for i in 0..columntypes.len(){ 
+       let mut row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
                                                                                  //
+        
        stmt.push(row); 
+    }
     //stmt.push(conn.query_map(query, |(columns)|columns)?); //
     //let stmt  = conn.query(query).unwrap();
     Ok(stmt)
