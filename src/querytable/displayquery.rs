@@ -2,7 +2,7 @@
 pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str, columns: Vec<String>)->String{
     let mut html = String::new();
     html.push_str("<html><head><title>Query Results</title>");
-    html.push_str("<style>table, th, td {border: 1px solid black; display:block;}, tr { display: block;}
+    html.push_str("<style>table, th, td {border: 1px solid black;}, tr { display: block;float: left; }
         body{background-color: linen}</style>");
 
     html.push_str("</head><body>");
