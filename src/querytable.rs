@@ -37,7 +37,7 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
         query.push_str(" WHERE ");
         query.push_str(whereclause);
     }
-    let stmt: Vec<Vec<String>> = conn.query_map(query, |(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11)|{
+    let stmt: Vec<Vec<String>> = conn.query_map(query, |(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)|{
         let mut row: Vec<String> = Vec::new();
         row.push(col1);
         row.push(col2);
@@ -49,7 +49,6 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
         row.push(col8);
         row.push(col9);
         row.push(col10);
-        row.push(col11);
         row
     })?; //??
 
