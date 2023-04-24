@@ -62,6 +62,13 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
        stmt.push(row); 
         query.clear();
     }
+   let mut table:Vec<Vec<String>>=Vec::new();
+   for i in 0..stmt.len(){
+        for j in 0..stmt[i].len(){
+           table[j][i]=stmt[i][j].clone();
+        }
+   }
+  println!("{:?}",table); 
    //swap rows and columns stmt
 
    //transpose stmt
