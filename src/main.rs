@@ -10,7 +10,6 @@ pub mod dbconnect;
 pub mod createdatabase;
 pub mod querytable;
 
-
 #[actix_web::main]
 async fn main() {
     let server = HttpServer::new(|| {
