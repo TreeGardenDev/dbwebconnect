@@ -70,11 +70,11 @@ async fn method(form: web::Form<FormData>)->impl Responder{
 async fn query(form: web::Form<QueryData>)->impl Responder{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
         let tablename=&form.table.to_string();
-        //let columns=getfields::read_fields(&form.csvpath.display().to_string());
+        let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
         //let types=getfields::read_types(&form.csvpath.display().to_string());
         let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
         println!("{:?}",queryresult);
-        let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string());
+        let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)

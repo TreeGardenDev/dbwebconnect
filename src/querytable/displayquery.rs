@@ -1,5 +1,5 @@
 
-pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str)->String{
+pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str, columns: Vec<String>)->String{
     let mut html = String::new();
     html.push_str("<html><head><title>Query Results</title>");
     html.push_str("<style>table, th, td {border: 1px solid black;}
