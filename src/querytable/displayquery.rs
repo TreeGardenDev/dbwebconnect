@@ -1,5 +1,5 @@
 
-pub fn buildhtml(querydata: Vec<String>, database:&str, table:&str)->String{
+pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str)->String{
     let mut html = String::new();
     html.push_str("<html><head><title>Query Results</title>");
     html.push_str("<style>table, th, td {border: 1px solid black;}
@@ -13,15 +13,15 @@ pub fn buildhtml(querydata: Vec<String>, database:&str, table:&str)->String{
     html.push_str(table);
     html.push_str("</h1>");
     html.push_str("<table>");
-        html.push_str("<tr>");
     for row in querydata{
-        //for col in row{
+        html.push_str("<tr>");
+        for col in row{
             html.push_str("<td>");
-            html.push_str(&row);
+            html.push_str(&col);
             html.push_str("</td>");
-       
-    }
+        }
         html.push_str("</tr>");
+    }
     html.push_str("</table></body></html>");
     html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
     html
