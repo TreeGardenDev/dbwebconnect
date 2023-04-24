@@ -19,13 +19,13 @@ pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str, columns
         html.push_str("</th>");
     }
     for row in querydata{
-        html.push_str("<tc>");
-        for col in row{
+        html.push_str("<tr>");
+        //for col in row{
             html.push_str("<td>");
             html.push_str(&col);
             html.push_str("</td>");
-        }
-        html.push_str("</tc>");
+       // }
+        html.push_str("</tr>");
     }
     html.push_str("</table></body></html>");
     html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
