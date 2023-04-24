@@ -1,18 +1,12 @@
-use transpose::*;
 use mysql::prelude::*;
 use mysql::*;
 use crate::pushdata::gettablecol;
 pub mod displayquery;
 pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str)->Vec<Vec<String>>{
-    let mut query= String::from("SELECT * FROM ");
-    query.push_str(table);
     let columns = gettablecol::get_table_col(conn,table, database).unwrap();
 
-    let columntypes = grab_columntypes(conn, table, database).unwrap();
+    //let columntypes = grab_columntypes(conn, table, database).unwrap();
 
-
-    //let columndata=vec![columns,columntypes];
-    //query table with columns in columns vector and type in columntypes vector
 
     let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
     //columndata 
@@ -54,24 +48,19 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
        let mut query= String::from("SELECT ");
        query.push_str(&columntypes[i]);
        query.push_str(" FROM ");
+       query.push_str(database);
+       query.push_str(".");
        query.push_str(table);
-       let mut row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
-        //transpose row vec
-        //make row a column
+       if whereclause != "" {
+           query.push_str(" WHERE ");
+           query.push_str(whereclause);
+       }
+       let row=conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap();
+        
 
        stmt.push(row); 
         query.clear();
     }
-   let mut table:Vec<Vec<String>>=Vec::new();
-   for i in 0..stmt.len(){
-        for j in 0..stmt[i].len(){
-           table[j][i]=stmt[i][j].clone();
-        }
-   }
-  println!("{:?}",table); 
-   //swap rows and columns stmt
-
-   //transpose stmt
-    //let stmt  = conn.query(query).unwrap();
-    Ok(stmt)
+   //let mut fixedstmt:Vec<Vec<String>>=vec![&columntypes.len(), &stmt.len()];
+   Ok(stmt) 
 }
