@@ -13,6 +13,11 @@ pub fn buildhtml(querydata: Vec<Vec<String>>, database:&str, table:&str, columns
     html.push_str(table);
     html.push_str("</h1>");
     html.push_str("<table>");
+    for col in &columns{
+        html.push_str("<th>");
+        html.push_str(col);
+        html.push_str("</th>");
+    }
     for row in querydata{
         html.push_str("<tr>");
         for col in row{
