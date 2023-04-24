@@ -1,3 +1,4 @@
+use transpose::*;
 use mysql::prelude::*;
 use mysql::*;
 use crate::pushdata::gettablecol;
@@ -54,13 +55,16 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
        query.push_str(&columntypes[i]);
        query.push_str(" FROM ");
        query.push_str(table);
-       let row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
-                                                                                 //
-        
+       let mut row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
+        //transpose row vec
+        //make row a column
+
        stmt.push(row); 
         query.clear();
     }
-    //stmt.push(conn.query_map(query, |(columns)|columns)?); //
+   //swap rows and columns stmt
+
+   //transpose stmt
     //let stmt  = conn.query(query).unwrap();
     Ok(stmt)
 }
