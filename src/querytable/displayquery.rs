@@ -22,7 +22,7 @@ td { display: block; border: 1px solid black;} body{background-color: linen}</st
         html.push_str("<tr>");
         for i in &columns{
             html.push_str("<td>");
-            html.push_str(&row[columns.iter().position(|x| x == i).unwrap()]);
+            html.push_str(&i);
             html.push_str("</td>");
         }
 
