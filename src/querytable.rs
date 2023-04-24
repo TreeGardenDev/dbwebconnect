@@ -47,13 +47,14 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
 //        row
 //    })?; //??
 //
-    let mut query= String::from("SELECT ");
     let mut stmt=Vec::new();
    for i in 0..columntypes.len(){ 
+
+       let mut query= String::from("SELECT ");
        query.push_str(&columntypes[i]);
        query.push_str(" FROM ");
        query.push_str(table);
-       let mut row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
+       let row=(conn.query_map(query.clone(), |columntypes:String|columntypes).unwrap()); //??
                                                                                  //
         
        stmt.push(row); 
