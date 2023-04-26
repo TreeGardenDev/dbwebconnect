@@ -18,6 +18,7 @@ async fn main() {
             .route("/", web::get().to(index))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
+            .route("/create", web::post().to(create))
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
@@ -83,6 +84,17 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
+async fn create(form: web::Form<NewCsv>)->impl Responder{
+    let mut connection=dbconnect::database_connection(&form.database.to_string());
+    let tablename=&form.table.to_string();
+    let database=&form.database.to_string();
+    let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
+    //let _=createrecord::create_record(&mut connection, &form.table.to_string(), &form.database.to_string(), &form.records);
+    let _ =createrecord::generateform::buildform(database, tablename, columns);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
     method: String,
@@ -111,6 +123,12 @@ struct CLI{
     pattern: String,
     table: String,
     path:std::path::PathBuf,
+}
+#[derive(Parser, Serialize, Deserialize)]
+pub struct NewCsv{
+    database: String,
+    table: String,
+    records: Vec<String>,
 }
 type Column=Vec<String>;
 
