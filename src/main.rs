@@ -9,7 +9,7 @@ pub mod tablecreate;
 pub mod dbconnect;
 pub mod createdatabase;
 pub mod querytable;
-
+pub mod createrecord;
 
 #[actix_web::main]
 async fn main() {
@@ -18,6 +18,7 @@ async fn main() {
             .route("/", web::get().to(index))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
+            .route("/create", web::post().to(create))
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
@@ -57,6 +58,10 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         println!("{:?}",queryresult);
 
     }
+    else if form.method=="csv"{
+       let mut connection=dbconnect::database_connection(&form.database.to_string()); 
+        let _=createrecord::create_session_csv(&mut connection, &form.table.to_string(), &form.database.to_string());
+    }
     else{
         println!("No method selected");
     }
@@ -75,6 +80,17 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
         println!("{:?}",queryresult);
         let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
+}
+async fn create(form: web::Form<NewCsv>)->impl Responder{
+    let mut connection=dbconnect::database_connection(&form.database.to_string());
+    let tablename=&form.table.to_string();
+    let database=&form.database.to_string();
+    let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
+    //let _=createrecord::create_record(&mut connection, &form.table.to_string(), &form.database.to_string(), &form.records);
+    let html =createrecord::generateform::buildform(database, tablename, columns);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
@@ -107,6 +123,11 @@ struct CLI{
     pattern: String,
     table: String,
     path:std::path::PathBuf,
+}
+#[derive(Parser, Serialize, Deserialize)]
+pub struct NewCsv{
+    database: String,
+    table: String,
 }
 type Column=Vec<String>;
 

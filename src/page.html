@@ -30,6 +30,7 @@ input {
         <option value="create">Create</option>
         <option value="newdb">New Database</option>
         <option value="query">Query</option>
+        <option value="csv">CSV</option>
       </select>
 		<label for="database">Database</label>
 		<input type="text" name="database" />
@@ -50,6 +51,13 @@ input {
 		<input type="text" name="table" />
 		<label for="whereclause">Where</label>
 		<input type="text" name="whereclause" />
+		<button type="submit">Query</button>
+</form>
+<form action="/create" method="post">
+		<label for="database">Database</label>
+		<input type="text" name="database" />
+		<label for="table">Table</label>
+		<input type="text" name="table" />
 		<button type="submit">Query</button>
 </form>
 </body>
