@@ -128,7 +128,6 @@ struct CLI{
 pub struct NewCsv{
     database: String,
     table: String,
-    records: Vec<String>,
 }
 type Column=Vec<String>;
 
