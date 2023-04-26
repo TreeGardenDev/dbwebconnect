@@ -90,10 +90,10 @@ async fn create(form: web::Form<NewCsv>)->impl Responder{
     let database=&form.database.to_string();
     let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
     //let _=createrecord::create_record(&mut connection, &form.table.to_string(), &form.database.to_string(), &form.records);
-    let _ =createrecord::generateform::buildform(database, tablename, columns);
+    let html =createrecord::generateform::buildform(database, tablename, columns);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(include_str!("pages/methodsuccess.html"))
+        .body(html)
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
