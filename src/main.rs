@@ -9,6 +9,7 @@ pub mod tablecreate;
 pub mod dbconnect;
 pub mod createdatabase;
 pub mod querytable;
+pub mod createrecord;
 
 #[actix_web::main]
 async fn main() {
@@ -55,6 +56,10 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string());
         println!("{:?}",queryresult);
 
+    }
+    else if form.method=="csv"{
+       let mut connection=dbconnect::database_connection(&form.database.to_string()); 
+        let _=createrecord::create_session_csv(&mut connection, &form.table.to_string(), &form.database.to_string());
     }
     else{
         println!("No method selected");

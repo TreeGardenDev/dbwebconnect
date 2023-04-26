@@ -20,7 +20,6 @@ fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::
     query.push_str(table);
     query.push_str("'");
     let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
-
     Ok(stmt)
 }
 
