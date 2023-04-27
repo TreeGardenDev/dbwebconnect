@@ -94,7 +94,7 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
     //let _=createrecord::create_record(&mut connection, &form.table.to_string(), &form.database.to_string(), &form.records);
     let html =createrecord::generateform::buildform(database, tablename, columns);
     HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
+        .content_type("application/x-www-form-urlencoded; charset=utf-8")
         .body(html)
 }
 async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
