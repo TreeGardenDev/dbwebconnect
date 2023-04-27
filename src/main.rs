@@ -100,15 +100,15 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
 async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
     //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
-    let newrecord=NewRecord{
-        records: form.records
-    };
-    println!("{:?}", newrecord);
+  //  let newrecord=NewRecord{
+  //      records: form.records
+  //  };
+    //println!("{:?}", newrecord);
 //    newrecord.records
-
+    let html=createrecord::generateform::formresponse(form);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(include_str!("pages/methodsuccess.html"))
+        .body(html)
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
