@@ -97,11 +97,9 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn saveform(web::Form(form): web::Form<Vec<String>>)-> impl Responder{
+async fn saveform(web::Form(form): web::Form<String>)-> impl Responder{
     let mut input=Vec::new();
-    for i in form{
-        input.push(i);
-    }
+        input.push(form);
     println!("{:?}", input);
     //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
