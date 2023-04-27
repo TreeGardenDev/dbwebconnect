@@ -8,7 +8,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
 
     html.push_str("</head><body>");
     html.push_str("<h1>");
-    html.push_str("Insert Into");
+    html.push_str("Insert Into ");
     html.push_str(database);
     html.push_str(".");
     html.push_str(table);
@@ -17,6 +17,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     for i in 0..columns.len(){
         html.push_str("<label for='");
         html.push_str(&columns[i]);
+        html.push_str(": ");
         html.push_str("'>");
         html.push_str(&columns[i]);
         html.push_str("</label>");
