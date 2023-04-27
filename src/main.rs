@@ -98,6 +98,10 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
         .body(html)
 }
 async fn saveform(web::Form(form): web::Form<Vec<String>>)-> impl Responder{
+    let mut input=Vec::new();
+    for i in form{
+        input.push(i);
+    }
     //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
   //  let newrecord=NewRecord{
@@ -105,7 +109,7 @@ async fn saveform(web::Form(form): web::Form<Vec<String>>)-> impl Responder{
   //  };
     //println!("{:?}", newrecord);
 //    newrecord.records
-    let html=createrecord::generateform::formresponse(form);
+    let html=createrecord::generateform::formresponse(input);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
