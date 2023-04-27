@@ -97,7 +97,7 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
+async fn saveform(web::Form(form): web::Form<Vec<String>>)-> impl Responder{
     //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
   //  let newrecord=NewRecord{
