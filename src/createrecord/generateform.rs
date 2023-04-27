@@ -1,5 +1,4 @@
 // Purpose: generate form for table
-use crate::NewRecord;
 
 pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     let mut html= String::new();
