@@ -19,7 +19,7 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
-            .route("/create/saveform", web::get().to(saveform))
+            .route("/create/saveform", web::post().to(saveform))
             
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))

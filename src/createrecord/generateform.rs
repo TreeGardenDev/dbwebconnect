@@ -52,6 +52,8 @@ pub fn formresponse(columns: Vec<String>)->String{
         html.push_str("</tr>");
     }
    html.push_str("</table>");
+   html.push_str("<br><br>");
+  
 
     html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
     html
