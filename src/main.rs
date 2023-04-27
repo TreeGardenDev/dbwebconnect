@@ -19,6 +19,8 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
+            .route("/create/saveform", web::post().to(saveform))
+            
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
@@ -84,7 +86,7 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn create(form: web::Form<NewCsv>)->impl Responder{
+async fn create(form: web::Form<NewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());
     let tablename=&form.table.to_string();
     let database=&form.database.to_string();
@@ -95,16 +97,18 @@ async fn create(form: web::Form<NewCsv>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn saveform(web::Form(form): web::Form<NewRecord>)->Vec<String>{
-    let mut connection=dbconnect::database_connection(&form.database.to_string());
+async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
+    //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
     let newrecord=NewRecord{
-        database: form.database,
-        table: form.table,
-        records: form.records,
+        records: form.records
     };
     println!("{:?}", newrecord);
-    newrecord.records
+//    newrecord.records
+
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 #[derive(Serialize, Deserialize)]
 pub struct FormData {
@@ -142,8 +146,6 @@ pub struct NewCsv{
 }
 #[derive(Parser, Serialize,Debug, Deserialize)]
 pub struct NewRecord{
-    database: String,
-    table: String,
     records: Vec<String>,
 }
 type Column=Vec<String>;
