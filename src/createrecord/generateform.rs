@@ -13,13 +13,19 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     html.push_str(".");
     html.push_str(table);
     html.push_str("</h1>");
-    html.push_str("<table>");
-    for col in &columns{
-        html.push_str("<th>");
-        html.push_str(col);
-        html.push_str("</th>");
+    html.push_str("<form action='/insert' method='post'>");
+    for i in 0..columns.len(){
+        html.push_str("<label for='");
+        html.push_str(&columns[i]);
+        html.push_str("'>");
+        html.push_str(&columns[i]);
+        html.push_str("</label>");
+        html.push_str("<input type='text' id='");
+        html.push_str(&columns[i]);
+        html.push_str("' name='");
+        html.push_str(&columns[i]);
+        html.push_str("'><br><br>");
     }
-    html.push_str("</table></body></html>");
     html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }

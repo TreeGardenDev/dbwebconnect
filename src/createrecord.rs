@@ -11,10 +11,10 @@ pub fn create_session_csv(conn: &mut PooledConn, table: &str, database: &str) ->
     let mut csv=Writer::from_path(file)?;
     let columns = gettablecol::get_table_col(conn,table, database).unwrap();
     for column in columns{
-        csv.write_field(column);
+        csv.write_field(column)?;
     }
     //csv.write_record(&columns);
-    csv.flush();
+    csv.flush()?;
     Ok(())
 }
 pub fn create_row_csv(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -28,10 +28,10 @@ pub fn create_row_csv(conn: &mut PooledConn, table: &str, database: &str) -> std
         let columns = gettablecol::get_table_col(conn,table, database).unwrap();
 
         for column in columns{
-            csv.write_field(column);
+            csv.write_field(column)?;
         }
         //csv.write_record(&columns);
-        csv.flush();
+        csv.flush()?;
     }else{
         create_session_csv(conn, table, database)?;
         create_row_csv(conn, table, database)?;   
