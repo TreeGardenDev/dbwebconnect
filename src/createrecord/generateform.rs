@@ -1,5 +1,5 @@
 // Purpose: generate form for table
-
+use crate::NewRecord;
 pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     let mut html= String::new();
     html.push_str("<html><head><title>Query Results</title>");
@@ -33,7 +33,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
 }
 
 //take user response and generate it back to user
-pub fn formresponse(columns: Vec<String>)->String{
+pub fn formresponse(columns: NewRecord)->String{
     let mut html= String::new();
     html.push_str("<html><head><title>Create Results</title>");
     html.push_str("<style>
@@ -44,12 +44,10 @@ pub fn formresponse(columns: Vec<String>)->String{
     html.push_str("Insert Into ");
     html.push_str("</h1>");
     html.push_str("<table>");
-   for i in 0..columns.len(){
-        html.push_str("<tr>");
-        html.push_str("<td>");
-        html.push_str(&columns[i]);
-        html.push_str("</td>");
-        html.push_str("</tr>");
+    for i in 0..columns.records.len(){
+        html.push_str("<tr><td>");
+        html.push_str(&columns.records[i]);
+        html.push_str("</td></tr>");
     }
    html.push_str("</table>");
    html.push_str("<br><br>");

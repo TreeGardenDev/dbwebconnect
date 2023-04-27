@@ -108,7 +108,7 @@ async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
   //  };
     //println!("{:?}", newrecord);
 //    newrecord.records
-    let html=createrecord::generateform::formresponse(form.records);
+    let html=createrecord::generateform::formresponse(form);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
