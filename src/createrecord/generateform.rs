@@ -44,21 +44,16 @@ pub fn formresponse(columns: Vec<String>)->String{
     html.push_str("<h1>");
     html.push_str("Insert Into ");
     html.push_str("</h1>");
-    html.push_str("<form action='/create' method='post'>");
-    for i in 0..columns.len(){
-        html.push_str("<label for='");
+    html.push_str("<table>");
+   for i in 0..columns.len(){
+        html.push_str("<tr>");
+        html.push_str("<td>");
         html.push_str(&columns[i]);
-        html.push_str(": ");
-        html.push_str("'>");
-        html.push_str(&columns[i]);
-        html.push_str("</label>");
-        html.push_str("<input type='text' id='");
-        html.push_str(&columns[i]);
-        html.push_str("' name='");
-        html.push_str(&columns[i]);
-        html.push_str("'><br><br>");
+        html.push_str("</td>");
+        html.push_str("</tr>");
     }
-    html.push_str("<input type='submit' value='Save'></form>");
+   html.push_str("</table>");
+
     html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
