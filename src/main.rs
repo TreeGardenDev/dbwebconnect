@@ -59,7 +59,7 @@ async fn postupload(
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> impl Responder {
     for f in form.files {
-        let path = format!("./tmp/{}", f.file_name.unwrap());
+        let path = format!("tmp/{}", f.file_name.unwrap());
         log::info!("saving to {path}");
         f.file.persist(path);
     }
