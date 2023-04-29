@@ -1,8 +1,14 @@
+use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use futures_util::TryStreamExt as _;
+use uuid::Uuid;
+use actix_multipart::form::tempfile::TempFileConfig;
+use actix_multipart::Multipart;
+use actix_multipart::form::MultipartForm;
+use actix_multipart::form::tempfile::TempFile;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
 use serde::{Deserialize, Serialize};
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 pub mod pushdata;
 pub mod getfields;
 pub mod tablecreate;
@@ -15,13 +21,19 @@ pub mod createrecord;
 async fn main() {
     let server = HttpServer::new(|| {
         App::new()
+            .app_data(TempFileConfig::default().directory("./tmp"))
             .route("/", web::get().to(index))
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
             .route("/create/saveform", web::post().to(saveform))
-            .route("/upload", web::post().to(upload))
+            .service(
+                web::resource("/upload")
+                    .route(web::get().to(getupload))
+                    .route(web::post().to(postupload)),
+            )
+
             
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
@@ -36,13 +48,24 @@ async fn index()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
-async fn upload()->impl Responder{
+async fn getupload()->impl Responder{
     let html=createrecord::generateform::fileinsert();
     HttpResponse::Ok()
         .body(html)
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
+async fn postupload(
+    MultipartForm(form): MultipartForm<UploadForm>,
+) -> impl Responder {
+    for f in form.files {
+        let path = format!("./tmp/{}", f.file_name.unwrap());
+        log::info!("saving to {path}");
+        f.file.persist(path);
+    }
+
+    HttpResponse::Ok()
+}
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
@@ -175,4 +198,10 @@ type Column=Vec<String>;
 pub struct Auth{
     username: String,
     password: String,
+}
+
+#[derive(Debug, MultipartForm)]
+pub struct UploadForm {
+    #[multipart(rename = "file")]
+    files: Vec<TempFile>,
 }
