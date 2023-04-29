@@ -21,6 +21,7 @@ async fn main() {
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
             .route("/create/saveform", web::post().to(saveform))
+            .route("/upload", web::post().to(upload))
             
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
@@ -32,6 +33,13 @@ async fn index()->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
+        //.content_type("text/css")
+        //.body(include_str!("pages/mystyle.css"))
+ }
+async fn upload()->impl Responder{
+    let html=createrecord::generateform::fileinsert();
+    HttpResponse::Ok()
+        .body(html)
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
