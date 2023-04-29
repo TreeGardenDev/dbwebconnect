@@ -16,6 +16,7 @@ async fn main() {
     let server = HttpServer::new(|| {
         App::new()
             .route("/", web::get().to(index))
+            .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
@@ -73,6 +74,16 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 
+}
+async fn auth(form: web::Form<Auth>)->impl Responder{
+    let result = format!("Username: {} Password: {}", form.username, form.password);
+    //Save credentials to appdata for Actix
+
+
+    println!("{}",result);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("page.html"))
 }
 async fn query(form: web::Form<QueryData>)->impl Responder{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
@@ -152,3 +163,8 @@ pub struct NewRecord{
 }
 type Column=Vec<String>;
 
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct Auth{
+    username: String,
+    password: String,
+}
