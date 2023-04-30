@@ -1,4 +1,5 @@
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use crate::createrecord::generateform::UploadForm;
 use futures_util::TryStreamExt as _;
 use uuid::Uuid;
 use actix_multipart::form::tempfile::TempFileConfig;
@@ -58,11 +59,8 @@ async fn getupload()->impl Responder{
 async fn postupload(
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> impl Responder {
-    for f in form.files {
-        let path = format!("tmp/{}", f.file_name.unwrap());
-        log::info!("saving to {path}");
-        f.file.persist(path);
-    }
+    let file=createrecord::generateform::file_upload(MultipartForm(form));
+    println!("{}",file);
 
     HttpResponse::Ok()
 }
@@ -200,8 +198,3 @@ pub struct Auth{
     password: String,
 }
 
-#[derive(Debug, MultipartForm)]
-pub struct UploadForm {
-    #[multipart(rename = "file")]
-    files: Vec<TempFile>,
-}

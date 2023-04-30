@@ -9,10 +9,24 @@ use actix_multipart::Multipart;
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
 
 #[derive(Debug, MultipartForm)]
-struct UploadForm {
+pub struct UploadForm {
     #[multipart(rename = "file")]
     files: Vec<TempFile>,
 }
+pub fn file_upload(
+    MultipartForm(form): MultipartForm<UploadForm>,
+) -> String{
+    for f in form.files {
+        let path = format!("tmp/{}", f.file_name.unwrap());
+        let file=path.clone();
+        log::info!("saving to {path}");
+        f.file.persist(path);
+        return file;
+    }
+    "error".to_string()
+    
+}
+
 
 
 pub fn fileinsert() -> String{
