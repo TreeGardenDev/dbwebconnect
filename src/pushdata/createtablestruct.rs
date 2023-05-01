@@ -9,7 +9,7 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
     let mut vecty:Vec<&str>=Vec::new();
     //iterate through every column in csv file
     //Do not iterate through first roq
-    let mut tablename=String::from("");
+    let mut tablename2=String::from("");
     let mut database2=String::from("");
     let mut rdr=Reader::from_path(file)?;
     
@@ -23,7 +23,7 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
         }
             else{
                 database2=record[0].to_string();
-                tablename=record[1].to_string();
+                tablename2=record[1].to_string();
             }
         }
         combinedcol.push(columnvector);
