@@ -16,12 +16,15 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
         for result in rdr.records() {
         let record = result?;
         //get first row of csv file 
-        println!("record 1 {}", &record[0]);
+        //get first column of csv file
+
+
         println!("{:?}", record);
         let mut columnvector=Vec::new();
         for column in 0..record.len(){
             columnvector.push(record[column].to_string());
-       // }
+       // }?
+        
          //   else{
          //       database2=record[0].to_string();
          //       tablename2=record[1].to_string();
@@ -33,25 +36,25 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
         data.push(Data2 {
              columns: combinedcol,
          });
-        println!("New Struct below");
-        println!("{:?}", data);
-        println!("New Struct above");
+       // println!("New Struct below");
+       // println!("{:?}", data);
+       // println!("New Struct above");
     let mut rdr3=Reader::from_path(file)?;
         let columnname2 = rdr3.headers()?;
         for u in columnname2{
 
             vecty.push(&u);
         }
-    for i in 0..data.len(){
-        for j in 0..data[i].columns.len(){
-            println!("New Column");
-            for k in 0..data[i].columns[j].len(){
-                //println!("Data below");
-                println!("{:?}", data[i].columns[j][k]);
-                //println!("Data above");
-            }
-        }
-    }
+//    for i in 0..data.len(){
+//        for j in 0..data[i].columns.len(){
+//       //     println!("New Column");
+//            for k in 0..data[i].columns[j].len(){
+//                //println!("Data below");
+//                println!("{:?}", data[i].columns[j][k]);
+//                //println!("Data above");
+//            }
+//        }
+//    }
    //let db:&str=&(*database); 
   // println!("Database: {}", db);
   // println!("Table: {}", tablename);
