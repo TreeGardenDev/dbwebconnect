@@ -1,5 +1,6 @@
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
+use crate::createrecord::generateform::InsertForm;
 use futures_util::TryStreamExt as _;
 use uuid::Uuid;
 use actix_multipart::form::tempfile::TempFileConfig;
@@ -56,10 +57,21 @@ async fn getupload()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
+//async fn postupload2(
+//    form: web::Form<InsertForm>,
+//) -> impl Responder {
+//   let filecopy=form.file.files.clone(); 
+//    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
+//
+//    println!("{}",file);
+//
+//    HttpResponse::Ok()
+////}
 async fn postupload(
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> impl Responder {
     let file=createrecord::generateform::file_upload(MultipartForm(form));
+
     println!("{}",file);
 
     HttpResponse::Ok()

@@ -1,7 +1,8 @@
 // Purpose: generate form for table
 use uuid::Uuid;
 use std::io::Write;
-use futures_util::TryStreamExt as _;
+use std::fs::File;
+use futures_util::{TryStreamExt as _, TryStream};
 use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::{TempFile, TempFileConfig};
 use actix_multipart::Multipart;
@@ -11,8 +12,16 @@ use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
     #[multipart(rename = "file")]
-    files: Vec<TempFile>,
+    pub files: Vec<TempFile>,
 }
+
+#[derive(Debug)]
+pub struct InsertForm {
+    pub database: String,
+    pub table: String,
+    pub file:File
+}
+//use file from Insert form in file_upload2
 pub fn file_upload(
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> String{
@@ -34,6 +43,8 @@ pub fn fileinsert() -> String{
         <head><title>Upload Test</title></head>
         <body>
             <form target="/upload" method="post" enctype="multipart/form-data">
+                <input type="text" name="database"/>
+                <input type="text" name="table"/>
                 <input type="file" multiple name="file"/>
                 <button type="submit">Submit</button>
             </form>
