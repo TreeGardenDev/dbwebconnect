@@ -11,14 +11,13 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
     //Do not iterate through first roq
     let mut tablename2=String::from("");
     let mut database2=String::from("");
-    let mut rdr=Reader::from_path(file)?;
     
+    let mut rdr=Reader::from_path(file)?;
+    println!("Headers: {:?}",rdr.headers()?);
         for result in rdr.records() {
         let record = result?;
         //get first row of csv file 
         //get first column of csv file
-
-
         println!("{:?}", record);
         let mut columnvector=Vec::new();
         for column in 0..record.len(){
