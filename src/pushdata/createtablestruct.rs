@@ -18,13 +18,13 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
 
         let mut columnvector=Vec::new();
         for column in 0..record.len(){
-            if column>1{
+        //    if column>1{
             columnvector.push(record[column].to_string());
-        }
-            else{
-                database2=record[0].to_string();
-                tablename2=record[1].to_string();
-            }
+       // }
+         //   else{
+         //       database2=record[0].to_string();
+         //       tablename2=record[1].to_string();
+        //    }
         }
         combinedcol.push(columnvector);
 
@@ -51,9 +51,9 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
             }
         }
     }
-   let db:&str=&(*database); 
-   println!("Database: {}", db);
-   println!("Table: {}", tablename);
+   //let db:&str=&(*database); 
+  // println!("Database: {}", db);
+  // println!("Table: {}", tablename);
    // println!("{:?}", data);
     //let tablename= std::env::args().nth(2).expect("No Table");
     let connection = crate::dbconnect::database_connection(database);
