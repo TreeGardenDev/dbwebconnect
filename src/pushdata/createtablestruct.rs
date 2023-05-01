@@ -16,13 +16,10 @@ pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::resu
         for result in rdr.records() {
         let record = result?;
 
+        println!("{:?}", record);
         let mut columnvector=Vec::new();
         for column in 0..record.len(){
 
-            if column>1{
-                println!("Column: {}", column);
-                println!("Record: {}", record[column].to_string());
-            }
             columnvector.push(record[column].to_string());
        // }
          //   else{
