@@ -74,8 +74,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
         html.push_str("</label>");
         html.push_str("<input type='text' id='");
         html.push_str(&columns[i]);
-        html.push_str("' name='");
-        html.push_str(&columns[i]);
+        html.push_str("' name='data");
         html.push_str("'><br><br>");
     }
     html.push_str("<input type='submit' value='Save'></form>");
