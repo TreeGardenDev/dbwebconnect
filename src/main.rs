@@ -1,9 +1,9 @@
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
-use futures_util::TryStreamExt as _;
-use uuid::Uuid;
+//use futures_util::TryStreamExt as _;
+//use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
-use actix_multipart::Multipart;
+//use actix_multipart::Multipart;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
@@ -54,21 +54,6 @@ async fn getupload()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
-//async fn postupload2(
-//    form: web::Form<InsertForm>,
-//) -> impl Responder {
-////   let filecopy=form.file.files.clone(); 
-////    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
-////
-//    println!("{}",form.database);
-//    println!("{}",form.table);
-//    
-//    println!("{:?}", form.file);
-//
-////    println!("{}",file);
-////
-//    HttpResponse::Ok()
-//}
 async fn postupload(
     MultipartForm(form):MultipartForm<UploadForm>,
 ) -> impl Responder {
@@ -80,16 +65,10 @@ async fn postupload(
 
     //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
-    //let newformdata=FormData{
-    //    method: "insert".to_string(),
-    //    database: &form.database.unwrap().to_string(),
-    //    table: form.table.unwrap().to_string(),
-    //    csvpath: file.try_into().unwrap(),
-    //};
-    //method(web::Form(newformdata)).await;
-   // println!("{}",file);
 
     HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
@@ -225,9 +204,3 @@ pub struct Auth{
     password: String,
 }
 
-//#[derive(MultipartForm)]
-//pub struct InsertForm{
-//    file: Vec<TempFile>,
-//    table: Text<String>,
-//    database: Text<String>,
-//}

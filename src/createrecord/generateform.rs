@@ -1,13 +1,11 @@
 // Purpose: generate form for table
 use uuid::Uuid;
 use std::io::Write;
-use std::fs::File;
 use futures_util::{TryStreamExt as _, TryStream};
 use actix_multipart::Multipart;
-use crate::Deserialize;
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{web, Error, HttpResponse};
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
@@ -27,7 +25,7 @@ pub fn file_upload(
         let path = format!("tmp/{}", f.file_name.clone().unwrap());
         let newfile=path.clone();
         log::info!("saving to {path}");
-        f.file.persist(path);
+        let _=f.file.persist(path);
         return newfile;
     }
     "error".to_string()
