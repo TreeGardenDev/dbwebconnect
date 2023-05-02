@@ -15,12 +15,8 @@ pub struct UploadForm {
     pub files: Vec<TempFile>,
 }
 
-#[derive(Debug)]
-pub struct InsertForm {
-    pub database: String,
-    pub table: String,
-    pub file:File
-}
+
+
 //use file from Insert form in file_upload2
 pub fn file_upload(
     MultipartForm(form): MultipartForm<UploadForm>,

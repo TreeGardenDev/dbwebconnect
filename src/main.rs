@@ -1,6 +1,5 @@
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
-use crate::createrecord::generateform::InsertForm;
 use futures_util::TryStreamExt as _;
 use uuid::Uuid;
 use actix_multipart::form::tempfile::TempFileConfig;
@@ -33,7 +32,7 @@ async fn main() {
             .service(
                 web::resource("/upload")
                     .route(web::get().to(getupload))
-                    .route(web::post().to(postupload)),
+                    .route(web::post().to(postupload2)),
             )
 
             
@@ -57,16 +56,21 @@ async fn getupload()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
-//async fn postupload2(
-//    form: web::Form<InsertForm>,
-//) -> impl Responder {
+async fn postupload2(
+    form: web::Form<InsertForm>,
+) -> impl Responder {
 //   let filecopy=form.file.files.clone(); 
 //    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
 //
+    println!("{}",form.database);
+    println!("{}",form.table);
+    
+    println!("{:?}", form.file);
+
 //    println!("{}",file);
 //
-//    HttpResponse::Ok()
-////}
+    HttpResponse::Ok()
+}
 async fn postupload(
     MultipartForm(form): MultipartForm<UploadForm>,
 ) -> impl Responder {
@@ -217,3 +221,9 @@ pub struct Auth{
     password: String,
 }
 
+#[derive(Parser, Debug, Deserialize)]
+pub struct InsertForm{
+    file: std::path::PathBuf,
+    table: String,
+    database: String,
+}
