@@ -72,7 +72,14 @@ async fn postupload(
 ) -> impl Responder {
     let file=createrecord::generateform::file_upload(MultipartForm(form));
 
-    println!("{}",file);
+    let newformdata=FormData{
+        method: "insert".to_string(),
+        database: "testcsv".to_string(),
+        table: "Data".to_string(),
+        csvpath: file.try_into().unwrap(),
+    };
+    method(web::Form(newformdata)).await;
+   // println!("{}",file);
 
     HttpResponse::Ok()
 }
