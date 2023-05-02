@@ -1,8 +1,13 @@
+use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use crate::createrecord::generateform::UploadForm;
+use futures_util::TryStreamExt as _;
+use uuid::Uuid;
+use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
+use actix_multipart::Multipart;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
 use serde::{Deserialize, Serialize};
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 pub mod pushdata;
 pub mod getfields;
 pub mod tablecreate;
@@ -15,11 +20,19 @@ pub mod createrecord;
 async fn main() {
     let server = HttpServer::new(|| {
         App::new()
+            .app_data(TempFileConfig::default().directory("./tmp"))
             .route("/", web::get().to(index))
+            .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
             .route("/create", web::post().to(create))
             .route("/create/saveform", web::post().to(saveform))
+            .service(
+                web::resource("/upload")
+                    .route(web::get().to(getupload))
+                    .route(web::post().to(postupload)),
+            )
+
             
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
@@ -34,13 +47,57 @@ async fn index()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
+async fn getupload()->impl Responder{
+    let html=createrecord::generateform::fileinsert();
+    HttpResponse::Ok()
+        .body(html)
+        //.content_type("text/css")
+        //.body(include_str!("pages/mystyle.css"))
+ }
+//async fn postupload2(
+//    form: web::Form<InsertForm>,
+//) -> impl Responder {
+////   let filecopy=form.file.files.clone(); 
+////    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
+////
+//    println!("{}",form.database);
+//    println!("{}",form.table);
+//    
+//    println!("{:?}", form.file);
+//
+////    println!("{}",file);
+////
+//    HttpResponse::Ok()
+//}
+async fn postupload(
+    MultipartForm(form):MultipartForm<UploadForm>,
+) -> impl Responder {
+    let table=&form.table.clone();
+    let database=&form.database.clone();
+
+
+    let file=createrecord::generateform::file_upload(form);
+
+    //let table:String=&form.table.unwrap().try_into();
+    let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
+    //let newformdata=FormData{
+    //    method: "insert".to_string(),
+    //    database: &form.database.unwrap().to_string(),
+    //    table: form.table.unwrap().to_string(),
+    //    csvpath: file.try_into().unwrap(),
+    //};
+    //method(web::Form(newformdata)).await;
+   // println!("{}",file);
+
+    HttpResponse::Ok()
+}
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        let _ = pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string(), &form.database.to_string());
+        let _ = pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), &form.table.to_string(), &form.database.to_string());
     }
-    else if form.method=="create"{
+    if form.method=="create"{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
         let tablename=&form.table.to_string();
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
@@ -73,6 +130,16 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 
+}
+async fn auth(form: web::Form<Auth>)->impl Responder{
+    let result = format!("Username: {} Password: {}", form.username, form.password);
+    //Save credentials to appdata for Actix
+
+
+    println!("{}",result);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("page.html"))
 }
 async fn query(form: web::Form<QueryData>)->impl Responder{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
@@ -152,3 +219,15 @@ pub struct NewRecord{
 }
 type Column=Vec<String>;
 
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct Auth{
+    username: String,
+    password: String,
+}
+
+//#[derive(MultipartForm)]
+//pub struct InsertForm{
+//    file: Vec<TempFile>,
+//    table: Text<String>,
+//    database: Text<String>,
+//}

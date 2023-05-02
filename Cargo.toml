@@ -13,4 +13,8 @@ mysql = { version = "*", default-features = false, features = ["minimal", "rustl
 mysql_common = { version = "*", default-features = false, features = ["bigdecimal03", "time03", "uuid"]}
 csv="1.1"
 clap = { version = "4.0", features = ["derive"] }
-transpose = "0.2.2"
+actix-multipart = "0.6.0"
+sanitize-filename = "0.4"
+uuid = { version = "1", features = ["v4"] }
+futures-util = "0.3.28"
+log = "0.4.17"
