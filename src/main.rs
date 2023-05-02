@@ -2,10 +2,8 @@ use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder
 use crate::createrecord::generateform::UploadForm;
 use futures_util::TryStreamExt as _;
 use uuid::Uuid;
-use actix_multipart::form::tempfile::TempFileConfig;
+use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
 use actix_multipart::Multipart;
-use actix_multipart::form::MultipartForm;
-use actix_multipart::form::tempfile::TempFile;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
@@ -32,7 +30,7 @@ async fn main() {
             .service(
                 web::resource("/upload")
                     .route(web::get().to(getupload))
-                    .route(web::post().to(postupload2)),
+                    .route(web::post().to(postupload)),
             )
 
             
@@ -56,33 +54,39 @@ async fn getupload()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
-async fn postupload2(
-    form: web::Form<InsertForm>,
-) -> impl Responder {
-//   let filecopy=form.file.files.clone(); 
-//    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
+//async fn postupload2(
+//    form: web::Form<InsertForm>,
+//) -> impl Responder {
+////   let filecopy=form.file.files.clone(); 
+////    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
+////
+//    println!("{}",form.database);
+//    println!("{}",form.table);
+//    
+//    println!("{:?}", form.file);
 //
-    println!("{}",form.database);
-    println!("{}",form.table);
-    
-    println!("{:?}", form.file);
-
-//    println!("{}",file);
-//
-    HttpResponse::Ok()
-}
+////    println!("{}",file);
+////
+//    HttpResponse::Ok()
+//}
 async fn postupload(
-    MultipartForm(form): MultipartForm<UploadForm>,
+    MultipartForm(form):MultipartForm<UploadForm>,
 ) -> impl Responder {
-    let file=createrecord::generateform::file_upload(MultipartForm(form));
+    let table=&form.table.clone();
+    let database=&form.database.clone();
 
-    let newformdata=FormData{
-        method: "insert".to_string(),
-        database: "testcsv".to_string(),
-        table: "Data".to_string(),
-        csvpath: file.try_into().unwrap(),
-    };
-    method(web::Form(newformdata)).await;
+
+    let file=createrecord::generateform::file_upload(form);
+
+    //let table:String=&form.table.unwrap().try_into();
+    let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
+    //let newformdata=FormData{
+    //    method: "insert".to_string(),
+    //    database: &form.database.unwrap().to_string(),
+    //    table: form.table.unwrap().to_string(),
+    //    csvpath: file.try_into().unwrap(),
+    //};
+    //method(web::Form(newformdata)).await;
    // println!("{}",file);
 
     HttpResponse::Ok()
@@ -91,9 +95,9 @@ async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
-        let _ = pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), form.table.to_string(), &form.database.to_string());
+        let _ = pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), &form.table.to_string(), &form.database.to_string());
     }
-    else if form.method=="create"{
+    if form.method=="create"{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
         let tablename=&form.table.to_string();
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
@@ -221,9 +225,9 @@ pub struct Auth{
     password: String,
 }
 
-#[derive(Parser, Debug, Deserialize)]
-pub struct InsertForm{
-    file: std::path::PathBuf,
-    table: String,
-    database: String,
-}
+//#[derive(MultipartForm)]
+//pub struct InsertForm{
+//    file: Vec<TempFile>,
+//    table: Text<String>,
+//    database: Text<String>,
+//}

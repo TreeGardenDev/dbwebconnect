@@ -1,7 +1,8 @@
 use crate::Data2;
 use crate::Reader;
 use crate::pushdata;
-pub fn read_csv2(file: &String, tablename:String, database:&String) -> std::result::Result<(), Box<dyn std::error::Error>> {
+pub fn read_csv2(file: &String, tablename:&String, database:&String) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    
     
     let mut combinedcol=Vec::new();
     let mut data: Vec<Data2> = Vec::new();

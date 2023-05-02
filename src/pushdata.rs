@@ -9,7 +9,7 @@ pub mod createtablestruct;
 fn execute_insert2(
     data: Vec<Data2>,
     //data: &Vec<String>,
-    tablename: String,
+    tablename: &String,
     mut conn: PooledConn,
     database: String,
 ) -> std::result::Result<(), Box<dyn std::error::Error>> {

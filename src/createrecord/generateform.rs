@@ -3,30 +3,32 @@ use uuid::Uuid;
 use std::io::Write;
 use std::fs::File;
 use futures_util::{TryStreamExt as _, TryStream};
-use actix_multipart::form::MultipartForm;
-use actix_multipart::form::tempfile::{TempFile, TempFileConfig};
 use actix_multipart::Multipart;
+use crate::Deserialize;
 
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
     #[multipart(rename = "file")]
     pub files: Vec<TempFile>,
+    pub database: Text<String>,
+    pub table: Text<String>,
 }
 
 
 
 //use file from Insert form in file_upload2
 pub fn file_upload(
-    MultipartForm(form): MultipartForm<UploadForm>,
+    form: UploadForm,
 ) -> String{
     for f in form.files {
-        let path = format!("tmp/{}", f.file_name.unwrap());
-        let file=path.clone();
+        let path = format!("tmp/{}", f.file_name.clone().unwrap());
+        let newfile=path.clone();
         log::info!("saving to {path}");
         f.file.persist(path);
-        return file;
+        return newfile;
     }
     "error".to_string()
     
