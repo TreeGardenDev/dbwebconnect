@@ -25,7 +25,12 @@ async fn main() {
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
-            .route("/create", web::post().to(create))
+            .service(
+                web::resource("/create")
+                    .route(web::get().to(getcreate))
+                    .route(web::post().to(postcreate)),
+            
+            )
             .route("/create/saveform", web::post().to(saveform))
             .service(
                 web::resource("/upload")
@@ -132,7 +137,7 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn create(form: web::Form<NewCsv>)-> impl Responder{
+async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());
     let tablename=&form.table.to_string();
     let database=&form.database.to_string();
@@ -142,6 +147,18 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+async fn postcreate(form: web::Form<SaveNewCsv>)-> impl Responder{
+    let mut connection=dbconnect::database_connection(&form.database.to_string());
+    //let tablename=&form.table.to_string();
+    //let database=&form.database.to_string();
+   // let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
+   // 
+    println!("{}, {}, {:?}", form.database, form.table, form.data);
+    //println!("{:?}", form.data);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
     //take form data and print it
@@ -186,6 +203,12 @@ struct CLI{
     pattern: String,
     table: String,
     path:std::path::PathBuf,
+}
+#[derive(Parser, Serialize, Deserialize)]
+pub struct SaveNewCsv{
+    database: String,
+    table: String,
+    data: Vec<String>,
 }
 #[derive(Parser, Serialize, Deserialize)]
 pub struct NewCsv{
