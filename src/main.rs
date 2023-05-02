@@ -137,7 +137,7 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
+async fn getcreate(form: web::Form<SaveNewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());
     let tablename=&form.table.to_string();
     let database=&form.database.to_string();
