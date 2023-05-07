@@ -81,7 +81,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
         html.push_str("'><br><br>");
     }
     html.push_str("<input type='submit' value='Save'></form>");
-    html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
 
@@ -106,7 +106,7 @@ pub fn formresponse(columns: NewRecord)->String{
    html.push_str("<br><br>");
   
 
-    html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
 

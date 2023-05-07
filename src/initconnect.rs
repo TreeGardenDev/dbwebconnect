@@ -44,8 +44,11 @@ pub fn postdatabaseconnection(form: LinkDataBase) {
     //save results to file in tmp directory
     let mut file = File::create("tmp/dbconnection.txt").unwrap();
     file.write_all(username.as_bytes()).unwrap();
+   file.write_all(",".as_bytes()).unwrap();
     file.write_all(password.as_bytes()).unwrap();
+   file.write_all(",".as_bytes()).unwrap();
     file.write_all(host.as_bytes()).unwrap();
+   file.write_all(",".as_bytes()).unwrap();
     file.write_all(port.as_bytes()).unwrap();
     //return connection
 
