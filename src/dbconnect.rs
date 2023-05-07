@@ -28,6 +28,7 @@ fn grabfromfile()->LinkDataBase{
     };
     for result in reader.records() {
         let record = result.unwrap();
+        println!("{:?}", record);
         form.dbuser = record[0].to_string();
         form.dbpass = record[1].to_string();
         form.dbhost = record[2].to_string();
