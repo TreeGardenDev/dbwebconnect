@@ -48,7 +48,7 @@ async fn main() {
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
-    println!("Starting server at localhost:8080");
+    println!("Starting server at 192.168.0.230:8080");
     server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
@@ -167,7 +167,7 @@ async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
         .body(html)
 }
 async fn postcreate(form: web::Form<SaveNewCsv>)-> impl Responder{
-    let mut connection=dbconnect::database_connection(&form.database.to_string());
+    let connection=dbconnect::database_connection(&form.database.to_string());
     //let tablename=&form.table.to_string();
     //let database=&form.database.to_string();
    // let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
