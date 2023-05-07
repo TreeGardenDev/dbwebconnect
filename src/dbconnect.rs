@@ -4,9 +4,20 @@ use mysql::Pool;
 use crate::PooledConn;
 use crate::LinkDataBase;
 pub fn database_connection(database: &str) -> PooledConn {
-    let url = "mysql://kylelocal:kcb@127.0.0.1:3306/";
+    let form = grabfromfile();
+    //let url = "mysql://kylelocal:kcb@127.0.0.1:3306/";
+    let mut url=String::new();
+    url.push_str("mysql://");
+    url.push_str(&form.dbuser);
+    url.push_str(":");
+    url.push_str(&form.dbpass);
+    url.push_str("@");
+    url.push_str(&form.dbhost);
+    url.push_str(":");
+    url.push_str(&form.dbport);
+    url.push_str("/");
+    println!("{}", url);
     //grab user and password from AppData actix-web
-    grabfromfile();
 
 
 
