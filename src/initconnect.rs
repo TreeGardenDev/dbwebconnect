@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Write;
 
 
-pub fn getpagehtml() {
+pub fn getpagehtml() -> String{
     //get page html to type username, password, host, port.
     let mut html = String::new();
 
@@ -28,6 +28,7 @@ pub fn getpagehtml() {
     html.push_str("</html>");
     println!("{}", html);
 
+    html
 }
 
 pub fn postdatabaseconnection(form: LinkDataBase) {
