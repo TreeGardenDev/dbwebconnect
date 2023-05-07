@@ -52,6 +52,7 @@ pub fn fileinsert() -> String{
 
 use crate::NewRecord;
 pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
+
     let mut html= String::new();
     html.push_str("<html><head><title>Query Results</title>");
     html.push_str("<style>

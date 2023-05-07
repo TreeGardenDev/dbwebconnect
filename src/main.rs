@@ -15,13 +15,19 @@ pub mod dbconnect;
 pub mod createdatabase;
 pub mod querytable;
 pub mod createrecord;
+pub mod initconnect;
 
 #[actix_web::main]
 async fn main() {
     let server = HttpServer::new(|| {
         App::new()
             .app_data(TempFileConfig::default().directory("./tmp"))
-            .route("/", web::get().to(index))
+            .service(
+                web::resource("/")
+                    .route(web::get().to(getinitializeconnect))
+                    .route(web::post().to(postinitializeconnect))
+            )
+            .route("/main", web::get().to(index))
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
@@ -44,6 +50,18 @@ async fn main() {
     });
     println!("Starting server at localhost:8080");
     server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
+}
+async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
+    let creds=initconnect::postdatabaseconnection(form.into_inner());
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("page.html"))
+}
+async fn getinitializeconnect()->impl Responder{
+    let html=initconnect::getpagehtml();
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
 }
 async fn index()->impl Responder{
     HttpResponse::Ok()
@@ -227,3 +245,12 @@ pub struct Auth{
     password: String,
 }
 
+
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct LinkDataBase{
+    dbuser: String,
+    dbpass: String,
+    dbhost: String,
+    dbport: String,
+
+}
