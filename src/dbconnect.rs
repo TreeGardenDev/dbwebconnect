@@ -33,6 +33,7 @@ fn grabfromfile()->LinkDataBase{
         form.dbhost = record[2].to_string();
         form.dbport = record[3].to_string();
     }
+    println!("grabfromfile");
     println!("{:?}", form);
     form
     
