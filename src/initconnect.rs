@@ -13,19 +13,20 @@ pub fn getpagehtml() {
     html.push_str("<title>Database Connection</title>");
     html.push_str("</head>");
     html.push_str("<body>");
-    html.push_str("<form action=\"postdbconnection\" method=\"post\">");
-    html.push_str("<label for=\"username\">Username:</label>");
-    html.push_str("<input type=\"text\" id=\"username\" name=\"username\"><br><br>");
-    html.push_str("<label for=\"password\">Password:</label>");
-    html.push_str("<input type=\"password\" id=\"password\" name=\"password\"><br><br>");
-    html.push_str("<label for=\"host\">Host:</label>");
-    html.push_str("<input type=\"text\" id=\"host\" name=\"host\"><br><br>");
-    html.push_str("<label for=\"port\">Port:</label>");
-    html.push_str("<input type=\"text\" id=\"port\" name=\"port\"><br><br>");
+    html.push_str("<form action=\"/\" method=\"post\">");
+    html.push_str("<label for=\"dbuser\">Username:</label>");
+    html.push_str("<input type=\"text\" id=\"dbuser\" name=\"dbuser\"><br><br>");
+    html.push_str("<label for=\"dbpass\">Password:</label>");
+    html.push_str("<input type=\"text\" id=\"dbpass\" name=\"dbpass\"><br><br>");
+    html.push_str("<label for=\"dbhost\">Host:</label>");
+    html.push_str("<input type=\"text\" id=\"dbhost\" name=\"dbhost\"><br><br>");
+    html.push_str("<label for=\"dbport\">Port:</label>");
+    html.push_str("<input type=\"text\" id=\"dbport\" name=\"dbport\"><br><br>");
     html.push_str("<input type=\"submit\" value=\"Submit\">");
     html.push_str("</form>");
     html.push_str("</body>");
     html.push_str("</html>");
+    println!("{}", html);
 
 }
 
