@@ -1,4 +1,5 @@
 use crate::Reader;
+use csv::ReaderBuilder;
 use mysql::Pool;
 use crate::PooledConn;
 use crate::LinkDataBase;
@@ -19,7 +20,12 @@ pub fn database_connection(database: &str) -> PooledConn {
 }
 
 fn grabfromfile()->LinkDataBase{
-    let mut reader = Reader::from_path("tmp/dbconnection.txt").unwrap();
+    //let mut reader = Reader::from_path("tmp/dbconnection.txt").unwrap();
+    //igneroe header
+    let mut reader=ReaderBuilder::new()
+        .has_headers(false)
+        .from_path("tmp/dbconnection.txt")
+        .unwrap();
     let mut form = LinkDataBase{
         dbuser: String::new(),
         dbpass: String::new(),
@@ -27,6 +33,9 @@ fn grabfromfile()->LinkDataBase{
         dbport: String::new(),
     };
     for result in reader.records() {
+        //ignore header
+
+
         let record = result.unwrap();
         println!("{:?}", record);
         form.dbuser = record[0].to_string();
