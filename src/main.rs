@@ -35,6 +35,7 @@ async fn main() {
             .route("/main", web::get().to(index))
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
+            .route("/createtable", web::post().to(createtable))
             .route("/query", web::post().to(query))
             .service(
                 web::resource("/create")
