@@ -19,6 +19,10 @@ pub mod initconnect;
 
 #[actix_web::main]
 async fn main() {
+    //grab the first argument
+    let mut args = std::env::args().nth(1).unwrap();
+    args.push_str(":8080"); 
+    
     let server = HttpServer::new(|| {
         App::new()
             .app_data(TempFileConfig::default().directory("./tmp"))
@@ -48,8 +52,8 @@ async fn main() {
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
-    println!("Starting server at 192.168.0.230:8080");
-    server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
+    println!("Starting server at {}", args);
+    server.bind(args).expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
     let creds=initconnect::postdatabaseconnection(form.into_inner());
