@@ -1,5 +1,6 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
+use crate::createrecord::generateform::CreateTable;
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
@@ -93,6 +94,18 @@ async fn postupload(
     //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
 
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Responder{
+    let mut connection=dbconnect::database_connection(&form.database.clone().to_string());
+    let tablename=&form.table.clone().to_string();
+    let file=createrecord::generateform::uploadnewcols(form);
+    let columns=getfields::read_fields(&file);
+    let types=getfields::read_types(&file);
+
+    let _ =tablecreate::create_table(&mut connection,&tablename,&columns,&types);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
