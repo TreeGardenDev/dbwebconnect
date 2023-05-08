@@ -88,11 +88,18 @@ select{
 		<input type="text" name="csvpath" />
 		<button type="submit">Insert Data</button>
 </form>
+<form action="/createtable" method="post">
+		<label for="database">Database</label>
+		<input type="text" name="database" />
+		<label for="table">Table</label>
+		<input type="text" name="table" />
+		<label for="file">Table Columns</label>
+        <input type="file" label="File" multiple name="file"/>
+		<button type="submit">Create Table</button>
+</form>
 <!--create space between two forms-->
-<br>
 <!-- Add link to upload csv file-->
 <!--<div>-->
-<br>
 <form action="/query" method="post">
 		<label for="database">Database</label>
 		<input type="text" name="database" />
@@ -109,6 +116,5 @@ select{
 		<input type="text" name="table" />
 		<button type="submit">Conduct Inspection</button>
 </form>
-<br>
 <a href="/upload">CSV File Bulk Upload</a>
 </body>
