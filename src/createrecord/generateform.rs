@@ -1,13 +1,11 @@
 // Purpose: generate form for table
 use uuid::Uuid;
 use std::io::Write;
-use std::fs::File;
 use futures_util::{TryStreamExt as _, TryStream};
 use actix_multipart::Multipart;
-use crate::Deserialize;
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{web, Error, HttpResponse};
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
@@ -24,10 +22,10 @@ pub fn file_upload(
     form: UploadForm,
 ) -> String{
     for f in form.files {
-        let path = format!("tmp/{}", f.file_name.clone().unwrap());
+        let path = format!("tmp/data/{}", f.file_name.clone().unwrap());
         let newfile=path.clone();
         log::info!("saving to {path}");
-        f.file.persist(path);
+        let _=f.file.persist(path);
         return newfile;
     }
     "error".to_string()
@@ -38,14 +36,49 @@ pub fn file_upload(
 
 pub fn fileinsert() -> String{
     let html = r#"<html>
+        <style>
+    body {
+    background-color: lightblue;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    color: #666666;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+}
+form {
+    background: #fff;
+    padding: 40px;
+    max-width: 600px;
+    margin: 40px auto;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px 4px rgba(19, 35, 47, 0.3);
+} 
+input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+}
+</style>
         <head><title>Upload Test</title></head>
         <body>
-            <form target="/upload" method="post" enctype="multipart/form-data">
-                <input type="text" name="database"/>
-                <input type="text" name="table"/>
-                <input type="file" multiple name="file"/>
+            <form label="Bulk Upload"  target="/upload" method="post" enctype="multipart/form-data">
+                <input type="text" label="Database Name" name="database"/>
+                <input type="text" label="Table Name" name="table"/>
+                <input type="file" label="File" multiple name="file"/>
                 <button type="submit">Submit</button>
             </form>
+            <br>
+            <form action='/main'><input type='submit' value='Return to Main Page'></form>
         </body>
     </html>"#;
     html.to_string()
@@ -54,6 +87,7 @@ pub fn fileinsert() -> String{
 
 use crate::NewRecord;
 pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
+
     let mut html= String::new();
     html.push_str("<html><head><title>Query Results</title>");
     html.push_str("<style>
@@ -68,6 +102,8 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     html.push_str("</h1>");
     html.push_str("<form action='/create/saveform' method='post'>");
     for i in 0..columns.len(){
+        //create struct with each column name
+
         html.push_str("<label for='");
         html.push_str(&columns[i]);
         html.push_str(": ");
@@ -76,12 +112,11 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
         html.push_str("</label>");
         html.push_str("<input type='text' id='");
         html.push_str(&columns[i]);
-        html.push_str("' name='");
-        html.push_str(&columns[i]);
+        html.push_str("' name='data");
         html.push_str("'><br><br>");
     }
     html.push_str("<input type='submit' value='Save'></form>");
-    html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
 
@@ -106,7 +141,7 @@ pub fn formresponse(columns: NewRecord)->String{
    html.push_str("<br><br>");
   
 
-    html.push_str("<form action='/'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
     html
 }
 

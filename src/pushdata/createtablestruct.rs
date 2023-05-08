@@ -10,8 +10,6 @@ pub fn read_csv2(file: &String, tablename:&String, database:&String) -> std::res
     let mut vecty:Vec<&str>=Vec::new();
     //iterate through every column in csv file
     //Do not iterate through first roq
-    let mut tablename2=String::from("");
-    let mut database2=String::from("");
     
     let mut rdr=Reader::from_path(file)?;
     println!("Headers: {:?}",rdr.headers()?);
@@ -45,16 +43,6 @@ pub fn read_csv2(file: &String, tablename:&String, database:&String) -> std::res
 
             vecty.push(&u);
         }
-//    for i in 0..data.len(){
-//        for j in 0..data[i].columns.len(){
-//       //     println!("New Column");
-//            for k in 0..data[i].columns[j].len(){
-//                //println!("Data below");
-//                println!("{:?}", data[i].columns[j][k]);
-//                //println!("Data above");
-//            }
-//        }
-//    }
    //let db:&str=&(*database); 
   // println!("Database: {}", db);
   // println!("Table: {}", tablename);

@@ -1,9 +1,9 @@
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
-use futures_util::TryStreamExt as _;
-use uuid::Uuid;
+//use futures_util::TryStreamExt as _;
+//use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
-use actix_multipart::Multipart;
+//use actix_multipart::Multipart;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
@@ -15,17 +15,32 @@ pub mod dbconnect;
 pub mod createdatabase;
 pub mod querytable;
 pub mod createrecord;
+pub mod initconnect;
 
 #[actix_web::main]
 async fn main() {
+    //grab the first argument
+    let mut args = std::env::args().nth(1).unwrap();
+    args.push_str(":8080"); 
+    
     let server = HttpServer::new(|| {
         App::new()
             .app_data(TempFileConfig::default().directory("./tmp"))
-            .route("/", web::get().to(index))
+            .service(
+                web::resource("/")
+                    .route(web::get().to(getinitializeconnect))
+                    .route(web::post().to(postinitializeconnect))
+            )
+            .route("/main", web::get().to(index))
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/query", web::post().to(query))
-            .route("/create", web::post().to(create))
+            .service(
+                web::resource("/create")
+                    .route(web::get().to(getcreate))
+                    .route(web::post().to(postcreate)),
+            
+            )
             .route("/create/saveform", web::post().to(saveform))
             .service(
                 web::resource("/upload")
@@ -37,8 +52,20 @@ async fn main() {
 //            .route("/insert", web::post().to(method))
  //           .route("/create", web::post().to(method))
     });
-    println!("Starting server at localhost:8080");
-    server.bind("192.168.0.230:8080").expect("Can not bind to port 8080").run().await.unwrap();
+    println!("Starting server at {}", args);
+    server.bind(args).expect("Can not bind to port 8080").run().await.unwrap();
+}
+async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
+    let creds=initconnect::postdatabaseconnection(form.into_inner());
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("page.html"))
+}
+async fn getinitializeconnect()->impl Responder{
+    let html=initconnect::getpagehtml();
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
 }
 async fn index()->impl Responder{
     HttpResponse::Ok()
@@ -54,21 +81,6 @@ async fn getupload()->impl Responder{
         //.content_type("text/css")
         //.body(include_str!("pages/mystyle.css"))
  }
-//async fn postupload2(
-//    form: web::Form<InsertForm>,
-//) -> impl Responder {
-////   let filecopy=form.file.files.clone(); 
-////    let file=createrecord::generateform::file_upload(MultipartForm(form.file));
-////
-//    println!("{}",form.database);
-//    println!("{}",form.table);
-//    
-//    println!("{:?}", form.file);
-//
-////    println!("{}",file);
-////
-//    HttpResponse::Ok()
-//}
 async fn postupload(
     MultipartForm(form):MultipartForm<UploadForm>,
 ) -> impl Responder {
@@ -80,16 +92,10 @@ async fn postupload(
 
     //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
-    //let newformdata=FormData{
-    //    method: "insert".to_string(),
-    //    database: &form.database.unwrap().to_string(),
-    //    table: form.table.unwrap().to_string(),
-    //    csvpath: file.try_into().unwrap(),
-    //};
-    //method(web::Form(newformdata)).await;
-   // println!("{}",file);
 
     HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
@@ -153,7 +159,7 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(html)
 }
-async fn create(form: web::Form<NewCsv>)-> impl Responder{
+async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());
     let tablename=&form.table.to_string();
     let database=&form.database.to_string();
@@ -163,6 +169,18 @@ async fn create(form: web::Form<NewCsv>)-> impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+async fn postcreate(form: web::Form<SaveNewCsv>)-> impl Responder{
+    let connection=dbconnect::database_connection(&form.database.to_string());
+    //let tablename=&form.table.to_string();
+    //let database=&form.database.to_string();
+   // let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
+   // 
+    println!("{}, {}, {:?}", form.database, form.table, form.data);
+    //println!("{:?}", form.data);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 async fn saveform(web::Form(form): web::Form<NewRecord>)-> impl Responder{
     //take form data and print it
@@ -209,6 +227,12 @@ struct CLI{
     path:std::path::PathBuf,
 }
 #[derive(Parser, Serialize, Deserialize)]
+pub struct SaveNewCsv{
+    database: String,
+    table: String,
+    data: Vec<String>,
+}
+#[derive(Parser, Serialize, Deserialize)]
 pub struct NewCsv{
     database: String,
     table: String,
@@ -225,9 +249,12 @@ pub struct Auth{
     password: String,
 }
 
-//#[derive(MultipartForm)]
-//pub struct InsertForm{
-//    file: Vec<TempFile>,
-//    table: Text<String>,
-//    database: Text<String>,
-//}
+
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct LinkDataBase{
+    dbuser: String,
+    dbpass: String,
+    dbhost: String,
+    dbport: String,
+
+}
