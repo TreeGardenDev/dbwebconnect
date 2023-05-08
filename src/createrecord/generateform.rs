@@ -14,10 +14,32 @@ pub struct UploadForm {
     pub database: Text<String>,
     pub table: Text<String>,
 }
+#[derive(Debug, MultipartForm)]
+pub struct CreateTable{
+    #[multipart(rename = "file")]
+    pub files: Vec<TempFile>,
+    pub database: Text<String>,
+    pub table: Text<String>,
+}
 
 
 
 //use file from Insert form in file_upload2
+pub fn uploadnewcols(
+    form: CreateTable,
+) -> String{
+    for f in form.files {
+        println!("file name: {:?}", f.file_name);
+        let path = format!("tmp/data/{}", f.file_name.clone().unwrap());
+        println!("path: {:?}", path);
+        let newfile=path.clone();
+        log::info!("saving to {path}");
+        let _=f.file.persist(path);
+        return newfile;
+    }
+    "error".to_string()
+    
+}
 pub fn file_upload(
     form: UploadForm,
 ) -> String{

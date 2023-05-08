@@ -1,5 +1,6 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
+use crate::createrecord::generateform::CreateTable;
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
@@ -34,6 +35,8 @@ async fn main() {
             .route("/main", web::get().to(index))
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
+            .route("/createtable", web::post().to(createtable))
+            .route("/createdatabase", web::post().to(createnewdb))
             .route("/query", web::post().to(query))
             .service(
                 web::resource("/create")
@@ -93,6 +96,25 @@ async fn postupload(
     //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
 
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
+    let _ =createdatabase::create_database(&form.database.to_string());
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Responder{
+    let mut connection=dbconnect::database_connection(&form.database.clone().to_string());
+    let tablename=&form.table.clone().to_string();
+    let file=createrecord::generateform::uploadnewcols(form);
+    println!("file here debug: {}",file);
+    let columns=getfields::read_fields(&file);
+    let types=getfields::read_types(&file);
+
+    let _ =tablecreate::create_table(&mut connection,&tablename,&columns,&types);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
@@ -257,4 +279,8 @@ pub struct LinkDataBase{
     dbhost: String,
     dbport: String,
 
+}
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct NewDataBase{
+    database: String,
 }
