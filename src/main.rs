@@ -103,6 +103,7 @@ async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Res
     let mut connection=dbconnect::database_connection(&form.database.clone().to_string());
     let tablename=&form.table.clone().to_string();
     let file=createrecord::generateform::uploadnewcols(form);
+    println!("file here debug: {}",file);
     let columns=getfields::read_fields(&file);
     let types=getfields::read_types(&file);
 
