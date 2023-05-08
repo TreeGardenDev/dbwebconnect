@@ -29,11 +29,12 @@ pub fn uploadnewcols(
     form: CreateTable,
 ) -> String{
     for f in form.files {
+        println!("file name: {:?}", f.file_name);
         let path = format!("tmp/data/{}", f.file_name.clone().unwrap());
+        println!("path: {:?}", path);
         let newfile=path.clone();
         log::info!("saving to {path}");
         let _=f.file.persist(path);
-        println!("newfile: {}", newfile);
         return newfile;
     }
     "error".to_string()
