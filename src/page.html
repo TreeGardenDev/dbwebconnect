@@ -59,6 +59,13 @@ div {
   margin: 20px;
   box-shadow: 0 4px 10px 4px rgba(19, 35, 47, 0.3);
 }
+select{
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+
+}
 </style>
 </head>
 <body>
@@ -70,11 +77,8 @@ div {
 
 <form action="/method" method="post">
 	<select name="method" id="method">
-        <option value="insert">Insert</option>
-        <option value="create">Create</option>
+        <option value="create">Create Table</option>
         <option value="newdb">New Database</option>
-        <option value="query">Query</option>
-        <option value="csv">CSV</option>
       </select>
 		<label for="database">Database</label>
 		<input type="text" name="database" />
