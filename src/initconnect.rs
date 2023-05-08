@@ -77,7 +77,12 @@ pub fn postdatabaseconnection(form: LinkDataBase) {
     let host = form.dbhost;
     let port = form.dbport;
     //save results to file in tmp directory
-    let mut file = File::create("tmp/dbconnection.txt").unwrap();
+    let mut path = String::from("tmp/");
+    //make directory if it does not exist
+    path.push_str(&username.to_string());
+    std::fs::create_dir_all(&path).unwrap();
+    path.push_str("/dbconnection.txt");
+    let mut file = File::create(path).unwrap();
     file.write_all(username.as_bytes()).unwrap();
    file.write_all(",".as_bytes()).unwrap();
     file.write_all(password.as_bytes()).unwrap();
