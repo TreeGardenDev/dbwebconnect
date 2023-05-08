@@ -33,6 +33,7 @@ pub fn uploadnewcols(
         let newfile=path.clone();
         log::info!("saving to {path}");
         let _=f.file.persist(path);
+        println!("newfile: {}", newfile);
         return newfile;
     }
     "error".to_string()
