@@ -75,7 +75,7 @@ select{
 <!-- link pages/mystyle.css-->
 <!--add buttons for create and insert method-->
 
-<form action="/method" method="post">
+<!--<form action="/method" method="post">
 	<select name="method" id="method">
         <option value="create">Create Table</option>
         <option value="newdb">New Database</option>
@@ -87,7 +87,14 @@ select{
 		<label for="csvpath">CSV Path</label>
 		<input type="text" name="csvpath" />
 		<button type="submit">Insert Data</button>
+</form>-->
+<h2> Create Database</h2>
+<form action="/createdatabase" method="post">
+		<label for="database">Database</label>
+		<input type="text" name="database" />
+		<button type="submit">Create Database</button>
 </form>
+<h2> Create Table</h2>
 <form action="/createtable" method="post" enctype="multipart/form-data">
 		<label for="database">Database</label>
 		<input type="text" name="database"/>
@@ -99,6 +106,7 @@ select{
 <!--create space between two forms-->
 <!-- Add link to upload csv file-->
 <!--<div>-->
+<h2> Query Database</h2>
 <form action="/query" method="post">
 		<label for="database">Database</label>
 		<input type="text" name="database" />
@@ -108,6 +116,7 @@ select{
 		<input type="text" name="whereclause" />
 		<button type="submit">Query</button>
 </form>
+<h2> Conduct Inspection</h2>
 <form action="/create" method="post">
 		<label for="database">Database</label>
 		<input type="text" name="database" />
@@ -115,5 +124,6 @@ select{
 		<input type="text" name="table" />
 		<button type="submit">Conduct Inspection</button>
 </form>
-<a href="/upload">CSV File Bulk Upload</a>
+<h2> Bulk CSV File</h2>
+<a href="/upload"CSV File Bulk Upload</a>
 </body>

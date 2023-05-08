@@ -36,6 +36,7 @@ async fn main() {
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
+            .route("/createdatabase", web::post().to(createnewdb))
             .route("/query", web::post().to(query))
             .service(
                 web::resource("/create")
@@ -95,6 +96,12 @@ async fn postupload(
     //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
 
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
+    let _ =createdatabase::create_database(&form.database.to_string());
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
@@ -272,4 +279,8 @@ pub struct LinkDataBase{
     dbhost: String,
     dbport: String,
 
+}
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct NewDataBase{
+    database: String,
 }
