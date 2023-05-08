@@ -42,8 +42,8 @@ input {
     padding: 12px 20px;
     margin: 8px 0;
     box-sizing: border-box;
-
-}");
+}
+    </style>");
     
     html.push_str("<title>Database Connection</title>");
     html.push_str("</head>");
@@ -61,7 +61,7 @@ input {
     html.push_str("</form>");
     html.push_str("</body>");
     html.push_str("</html>");
-//    println!("{}", html);
+    println!("{}", html);
 
     html
 }
