@@ -22,9 +22,86 @@ pub struct CreateTable{
     pub table: Text<String>,
 }
 
+#[derive(Debug, MultipartForm)]
+pub struct CreateRelation{
+    #[multipart(rename = "file")]
+    pub files: Vec<TempFile>,
+    pub database: Text<String>,
+}
 
 
 //use file from Insert form in file_upload2
+pub fn getCreateRelationship()->String{
+    let html = r#"<html>
+        <style>
+    body {
+    background-color: lightblue;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    color: #666666;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+}
+form {
+    background: #fff;
+    padding: 40px;
+    max-width: 600px;
+    margin: 40px auto;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px 4px rgba(19, 35, 47, 0.3);
+}
+input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+}
+    </style>
+        <head>
+            <title>Create Relationship</title>
+        </head>
+        <body>
+            <br><br>
+            <h1>Create Relationship</h1>
+            <form action="/createrelation" method="post" enctype="multipart/form-data">
+                <label for="file">File:</label>
+                <input type="file" id="file" name="file"><br><br>
+                <label for="database">Database:</label>
+                <input type="text" id="database" name="database"><br><br>
+                <input type="submit" value="Submit">
+            </form>
+        </body>
+    </html>"#;
+    html.to_string()
+}
+pub fn storerelationform(
+    form: CreateRelation,
+) -> String{
+    for f in form.files {
+        println!("file name: {:?}", f.file_name);
+        let path = format!("tmp/relation/{}", f.file_name.clone().unwrap());
+        println!("path: {:?}", path);
+        let newfile=path.clone();
+        log::info!("saving to {path}");
+        let _=f.file.persist(path);
+        return newfile;
+    }
+    "error".to_string()
+    
+}
+
+
+
+
 pub fn uploadnewcols(
     form: CreateTable,
 ) -> String{
