@@ -18,6 +18,7 @@ pub mod createdatabase;
 pub mod querytable;
 pub mod createrecord;
 pub mod initconnect;
+pub mod createrelationship;
 
 #[actix_web::main]
 async fn main() {
@@ -45,6 +46,7 @@ async fn main() {
                     .route(web::post().to(postcreate)),
             
             )
+                
             .route("/create/saveform", web::post().to(saveform))
             .service(
                 web::resource("/upload")
@@ -83,8 +85,10 @@ async fn getcreaterelation()->impl Responder{
         .body(html)
 }
 async fn postcreaterelation(MultipartForm(form):MultipartForm<CreateRelation>)->impl Responder{
+    let database =form.database.clone();
     let string =createrecord::generateform::storerelationform(form);
     println!("string here: {}",string);
+    let _ =createrelationship::commitrelationship(&database, string);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
