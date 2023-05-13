@@ -1,6 +1,7 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
+use crate::createrecord::generateform::CreateRelation;
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
@@ -50,6 +51,12 @@ async fn main() {
                     .route(web::get().to(getupload))
                     .route(web::post().to(postupload)),
             )
+            .service(
+                web::resource("/createrelation")
+                    .route(web::get().to(getcreaterelation))
+                    .route(web::post().to(postcreaterelation)),
+            )
+        
 
             
 //            .route("/insert", web::post().to(method))
@@ -69,6 +76,18 @@ async fn getinitializeconnect()->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+async fn getcreaterelation()->impl Responder{
+    let html=createrecord::generateform::getCreateRelationship();
+    HttpResponse::Ok()
+        .body(html)
+}
+async fn postcreaterelation(MultipartForm(form):MultipartForm<CreateRelation>)->impl Responder{
+    let string =createrecord::generateform::storerelationform(form);
+    println!("string here: {}",string);
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
 }
 async fn index()->impl Responder{
     HttpResponse::Ok()
@@ -284,3 +303,4 @@ pub struct LinkDataBase{
 pub struct NewDataBase{
     database: String,
 }
+

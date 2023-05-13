@@ -48,6 +48,8 @@ input {
     html.push_str("<title>Database Connection</title>");
     html.push_str("</head>");
     html.push_str("<body>");
+    html.push_str("<br><br>");
+    html.push_str("<h1>Initialize Database Connection</h1>");
     html.push_str("<form action=\"/\" method=\"post\">");
     html.push_str("<label for=\"dbuser\">Username:</label>");
     html.push_str("<input type=\"text\" id=\"dbuser\" name=\"dbuser\"><br><br>");
