@@ -1,0 +1,12 @@
+TableName,ColumnType
+col1,varchar(100)
+col2,varchar(100)
+col3,varchar(100)
+col4,INT
+col5,INT
+col6,VARCHAR(100)
+col7,VARCHAR(100)
+col8,INT
+col9,INT
+col10,INT
+
