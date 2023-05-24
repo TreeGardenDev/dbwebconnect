@@ -56,7 +56,7 @@ async fn main() {
             .service(
                 web::resource("/createrelation")
                     .route(web::get().to(getcreaterelation))
-                    .route(web::post().to(postcreaterelation)),
+                    .route(web::post().to(postcreaterelationdefined)),
             )
         
 
@@ -68,7 +68,7 @@ async fn main() {
     server.bind(args).expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
-    let creds=initconnect::postdatabaseconnection(form.into_inner());
+//    let creds=initconnect::postdatabaseconnection(form.into_inner());
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
@@ -80,15 +80,23 @@ async fn getinitializeconnect()->impl Responder{
         .body(html)
 }
 async fn getcreaterelation()->impl Responder{
-    let html=createrecord::generateform::getCreateRelationship();
+    let html=createrecord::generateform::getcreaterelationshipdefined();
     HttpResponse::Ok()
         .body(html)
 }
-async fn postcreaterelation(MultipartForm(form):MultipartForm<CreateRelation>)->impl Responder{
+//async fn postcreaterelation(MultipartForm(form):MultipartForm<CreateRelation>)->impl Responder{
+//    let database =form.database.clone();
+//    let string =createrecord::generateform::storerelationform(form);
+//    println!("string here: {}",string);
+//    let _ =createrelationship::commitrelationship(&database, string);
+//    HttpResponse::Ok()
+//        .content_type("text/html; charset=utf-8")
+//        .body(include_str!("pages/methodsuccess.html"))
+//}
+async fn postcreaterelationdefined(form:web::Form<NewRelationShip> )->impl Responder{
     let database =form.database.clone();
-    let string =createrecord::generateform::storerelationform(form);
-    println!("string here: {}",string);
-    let _ =createrelationship::commitrelationship(&database, string);
+
+    let _ =createrelationship::commitrelationshipdefined(&database,&form.table1, &form.column1, &form.table2, &form.column2, &form.ondelete, &form.onupdate);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
@@ -308,3 +316,13 @@ pub struct NewDataBase{
     database: String,
 }
 
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct NewRelationShip{
+    database: String,
+    table1: String,
+    column1: String,
+    table2: String,
+    column2: String,
+    onupdate: String,
+    ondelete: String,
+}
