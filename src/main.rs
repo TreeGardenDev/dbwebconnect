@@ -80,7 +80,7 @@ async fn getinitializeconnect()->impl Responder{
         .body(html)
 }
 async fn getcreaterelation()->impl Responder{
-    let html=createrecord::generateform::getCreateRelationship();
+    let html=createrecord::generateform::getcreaterelationshipdefined();
     HttpResponse::Ok()
         .body(html)
 }

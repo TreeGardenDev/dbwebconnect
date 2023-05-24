@@ -42,7 +42,10 @@ fn createrelationship(file:String)->String{
 
 pub fn commitrelationship(database: &str, file:String)->Result<Vec<String>, mysql::Error>{
 
+//pub fn commitrelationship(database: &str,table1:&str, col1:&str, table2:&str,
+//col2:&str,ondelete:&str, onupdate:&str)->Result<Vec<String>, mysql::Error>{
     let relation=createrelationship(file);
+    //let relation=createrelationship_fromhtml(table1, col1, table2, col2, ondelete, onupdate);
     let mut conn= dbconnect::database_connection(database);
     
     let result:Vec<String>= conn.query(relation)?;
@@ -51,5 +54,25 @@ pub fn commitrelationship(database: &str, file:String)->Result<Vec<String>, mysq
 }
 
 
+fn createrelationship_fromhtml(table1:&str, col1:&str, table2:&str, col2:&str, ondelete:&str, onupdate:&str)->String{
+
+   //let conn= dbconnect::database_connection(database);
+    let mut query:String= String::from("Alter Table ");
+    query.push_str(table1);
+    query.push_str(" Add Foreign Key (");
+    query.push_str(col1);
+    query.push_str(") References ");
+    query.push_str(table2);
+    query.push_str("(");
+    query.push_str(col2);
+    query.push_str(")");
+    query.push_str(" on Delete ");
+    query.push_str(ondelete);
+    query.push_str(" on Update ");
+    query.push_str(onupdate);
+    println!("{}", query);
+    return query
+
+}
 
 
