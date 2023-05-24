@@ -140,7 +140,7 @@ input {
         <body>
             <br><br>
             <h1>Create Relationship</h1>
-            <form action="/createrelation" method="post" enctype="multipart/form-data">
+            <form action="/createrelation" method="post">
                 <label for="database">Database:</label>
                 <input type="text" id="database" name="database"><br><br>
                 <a>

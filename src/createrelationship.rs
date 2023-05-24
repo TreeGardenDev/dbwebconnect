@@ -53,6 +53,17 @@ pub fn commitrelationship(database: &str, file:String)->Result<Vec<String>, mysq
 
 }
 
+pub fn commitrelationshipdefined(database: &str,table1:&str, col1:&str, table2:&str,
+col2:&str,ondelete:&str, onupdate:&str)->Result<Vec<String>, mysql::Error>{
+    let relation=createrelationship_fromhtml(table1, col1, table2, col2, ondelete, onupdate);
+    println!("{}", relation);
+    let mut conn= dbconnect::database_connection(database);
+    
+    let result:Vec<String>= conn.query(relation)?;
+    return Ok(result)
+
+}
+
 
 fn createrelationship_fromhtml(table1:&str, col1:&str, table2:&str, col2:&str, ondelete:&str, onupdate:&str)->String{
 
