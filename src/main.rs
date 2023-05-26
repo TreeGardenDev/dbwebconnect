@@ -1,7 +1,7 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
-use crate::createrecord::generateform::CreateRelation;
+//use crate::createrecord::generateform::CreateRelation;
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
@@ -325,4 +325,40 @@ pub struct NewRelationShip{
     column2: String,
     onupdate: String,
     ondelete: String,
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_record() {
+        let new_record = NewRecord { records: vec!["record1".to_string(), "record2".to_string()] };
+        assert_eq!(new_record.records.len(), 2);
+    }
+
+    #[test]
+    fn test_new_database() {
+        let new_database = NewDataBase { database: "my_database".to_string() };
+        assert_eq!(new_database.database, "my_database");
+    }
+
+    #[test]
+    fn test_new_relationship() {
+        let new_relationship = NewRelationShip {
+            database: "my_database".to_string(),
+            table1: "table1".to_string(),
+            column1: "column1".to_string(),
+            table2: "table2".to_string(),
+            column2: "column2".to_string(),
+            onupdate: "CASCADE".to_string(),
+            ondelete: "CASCADE".to_string(),
+        };
+        assert_eq!(new_relationship.database, "my_database");
+        assert_eq!(new_relationship.table1, "table1");
+        assert_eq!(new_relationship.column1, "column1");
+        assert_eq!(new_relationship.table2, "table2");
+        assert_eq!(new_relationship.column2, "column2");
+        assert_eq!(new_relationship.onupdate, "CASCADE");
+        assert_eq!(new_relationship.ondelete, "CASCADE");
+    }
 }
