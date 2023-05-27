@@ -29,6 +29,25 @@ pub fn database_connection(database: &str) -> PooledConn {
     let conn = pool.get_conn().unwrap();
     conn
 }
+pub fn database_connection_no_db_web(dbuser:&str, dbpassword:&str, dbport:&str, dbhost:&str) -> PooledConn {
+    //let url = "mysql://kylelocal:kcb@localhost:3306/";
+    let mut url=String::new();
+    url.push_str("mysql://");
+    url.push_str(&dbuser);
+    url.push_str(":");
+    url.push_str(&dbpassword);
+    url.push_str("@");
+    url.push_str(&dbhost);
+    url.push_str(":");
+    url.push_str(&dbport);
+    url.push_str("/");
+    println!("{}", url);
+    let url = url.as_str();
+    let pool = Pool::new(url).unwrap();
+    let conn = pool.get_conn().unwrap();
+    return conn;
+
+}
 pub fn database_connection_no_db() -> PooledConn {
     let form = grabfromfile();
     //let url = "mysql://kylelocal:kcb@localhost:3306/";
