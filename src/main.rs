@@ -39,6 +39,7 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route("/createdatabase", web::post().to(createnewdb))
+            .route("/createdatabase/{database}/{databaseuser}/{databasepword}/{port}/{url}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
             .service(
                 web::resource("/create")
@@ -84,15 +85,6 @@ async fn getcreaterelation()->impl Responder{
     HttpResponse::Ok()
         .body(html)
 }
-//async fn postcreaterelation(MultipartForm(form):MultipartForm<CreateRelation>)->impl Responder{
-//    let database =form.database.clone();
-//    let string =createrecord::generateform::storerelationform(form);
-//    println!("string here: {}",string);
-//    let _ =createrelationship::commitrelationship(&database, string);
-//    HttpResponse::Ok()
-//        .content_type("text/html; charset=utf-8")
-//        .body(include_str!("pages/methodsuccess.html"))
-//}
 async fn postcreaterelationdefined(form:web::Form<NewRelationShip> )->impl Responder{
     let database =form.database.clone();
 
@@ -105,15 +97,11 @@ async fn index()->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
-        //.content_type("text/css")
-        //.body(include_str!("pages/mystyle.css"))
  }
 async fn getupload()->impl Responder{
     let html=createrecord::generateform::fileinsert();
     HttpResponse::Ok()
         .body(html)
-        //.content_type("text/css")
-        //.body(include_str!("pages/mystyle.css"))
  }
 async fn postupload(
     MultipartForm(form):MultipartForm<UploadForm>,
@@ -124,7 +112,6 @@ async fn postupload(
 
     let file=createrecord::generateform::file_upload(form);
 
-    //let table:String=&form.table.unwrap().try_into();
     let _ =pushdata::createtablestruct::read_csv2(&file, table, database);
 
     HttpResponse::Ok()
@@ -133,6 +120,17 @@ async fn postupload(
 }
 async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
     let _ =createdatabase::create_database(&form.database.to_string());
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createnewdbweb(info: web::Path<(String,String,String,String,String)>)->impl Responder{
+    let database_name=&info.0;
+    let database_user=&info.1;
+    let database_pword=&info.2;
+    let port=&info.3;
+    let url=&info.4;
+    let _ =createdatabase::create_databaseweb( database_name, database_user, database_pword, port, url);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
@@ -153,7 +151,6 @@ async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Res
 async fn method(form: web::Form<FormData>)->impl Responder{
     let result = format!("Method: {} Table: {} CSV: {}", form.method, form.table, form.csvpath.display());
     if form.method=="insert"{
-        //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         let _ = pushdata::createtablestruct::read_csv2(&form.csvpath.display().to_string(), &form.table.to_string(), &form.database.to_string());
     }
     if form.method=="create"{
@@ -192,8 +189,6 @@ async fn method(form: web::Form<FormData>)->impl Responder{
 }
 async fn auth(form: web::Form<Auth>)->impl Responder{
     let result = format!("Username: {} Password: {}", form.username, form.password);
-    //Save credentials to appdata for Actix
-
 
     println!("{}",result);
     HttpResponse::Ok()
@@ -326,6 +321,11 @@ pub struct NewRelationShip{
     onupdate: String,
     ondelete: String,
 }
+#[derive(Parser, Serialize,Debug, Deserialize)]
+pub struct CsvRequestBody{
+    data:String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
