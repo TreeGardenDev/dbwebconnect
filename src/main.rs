@@ -40,8 +40,9 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route("/createdatabase", web::post().to(createnewdb))
-            .route("/createdatabase/{database}/{databaseuser}/{databasepword}/{port}/{url}", web::post().to(createnewdbweb))
+            .route("/createdatabase/{database}&{databaseuser}&{databasepword}&{port}&{url}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
+            .route("/query/{database}&{table}&{where}&{dbuser}&{dbpassword}", web::get().to(querytojson))
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -70,7 +71,8 @@ async fn main() {
     server.bind(args).expect("Can not bind to port 8080").run().await.unwrap();
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
-//    let creds=initconnect::postdatabaseconnection(form.into_inner());
+    let _=initconnect::postdatabaseconnection(form.into_inner());
+    
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
@@ -207,6 +209,25 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+async fn querytojson(info: web::Path<(String,String,String,String,String)>)->impl Responder{
+    let mut connection=dbconnect::database_connection(&info.0);
+    let database=&info.0;
+    let tablename=&info.1;
+    let whereclause=&info.2;
+    let username=&info.3;
+    let password=&info.4;
+
+    let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database);
+    let json= querytable::build_json(queryresult, &database, &tablename, &mut connection);
+    println!("JSON BELOW");
+    println!("{:?}",json);
+
+
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json)
 }
 async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());

@@ -52,3 +52,37 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
    //let mut fixedstmt:Vec<Vec<String>>=vec![&columntypes.len(), &stmt.len()];
    Ok(stmt) 
 }
+pub fn build_json(queryresult:Vec<Vec<String>>, database: &str, table:&str, conn: &mut PooledConn)->String{
+    let columns = gettablecol::get_table_col(conn,table, database).unwrap();
+    let mut json=String::from("{");
+    json.push_str("\"");
+    json.push_str(database);
+    json.push_str("\"");
+    json.push_str(":");
+    json.push_str("{");
+    json.push_str("\"");
+    json.push_str(table);
+    json.push_str("\"");
+    json.push_str(":");
+    json.push_str("{");
+
+
+    for i in 0..queryresult.len(){
+        for j in 0..columns.len(){
+                json.push_str("\"");
+                json.push_str(&columns[i]);
+                json.push_str("\"");
+                json.push_str(":");
+                json.push_str("\"");
+                json.push_str(&queryresult[i][j]);
+                json.push_str("\"");
+                json.push_str(",");
+        }
+    
+    }
+
+    json.push_str("}");
+    json.push_str("}");
+    json.push_str("}");
+    json
+}
