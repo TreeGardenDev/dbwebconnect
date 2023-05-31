@@ -22,8 +22,11 @@ impl ApiKey {
     fn populatekey(&mut self, database: String) {
         let mut apikey=String::new();
         
-        for _ in 0..32 {
-            let rng:u8 = rand::random();
+        //want to generate a random number with 19 digits
+        for _ in 0.. 19{
+            //set rng to random number between 0 and 9
+            let rng:u8 = rand::random::<u8>() % 10;
+
             apikey.push_str(&rng.to_string());
         }
         self.apikey = apikey;
@@ -31,9 +34,9 @@ impl ApiKey {
     }
 }
 
-pub fn search_apikey(database: String) -> Result<(), Box<dyn std::error::Error>> {
+pub fn search_apikey(database: String) -> Result<bool, Box<dyn std::error::Error>>{
     let mut conn=dbconnect::internalqueryconnapikey();
-    let mut stmt=String::from("SELECT apikey,database FROM apikeys WHERE database= ");
+    let mut stmt=String::from("SELECT apikey,databaseuser FROM apikeys WHERE databaseuser= ");
     stmt.push_str(&database);
     let mut keyvec:Vec<String> =Vec::new();
 
@@ -42,24 +45,25 @@ pub fn search_apikey(database: String) -> Result<(), Box<dyn std::error::Error>>
         keyvec.push(apikey);
     })?;
     
-    //if the apikey is found return true
+
     if query.len() > 0 {
-        return Ok(());
+        return Ok(true);
     }
     else {
-        return Err("Apikey not found".into());
+       return Ok(false)
     }
 }
 pub fn insert_apikey(database: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn=dbconnect::internalqueryconnapikey();
     let mut apikey=ApiKey::new();
     apikey.populatekey(database);
-    let mut stmt=String::from("INSERT INTO apikeys (apikey,database) VALUES (");
+    let mut stmt=String::from("INSERT INTO apikeys (apikey,databaseuser) VALUES (");
     stmt.push_str(&apikey.apikey);
-    stmt.push_str(",");
+    stmt.push_str(", '");
     stmt.push_str(&apikey.database);
+    stmt.push_str("')");
 
-    stmt.push_str(")");
+    println!("{}",stmt);
     conn.query_drop(stmt)?;
 
     Ok(())
