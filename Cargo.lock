@@ -724,6 +724,7 @@ dependencies = [
  "log",
  "mysql",
  "mysql_common",
+ "rand",
  "sanitize-filename",
  "serde",
  "serde_json",

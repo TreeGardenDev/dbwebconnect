@@ -97,3 +97,20 @@ fn grabfromfile()->LinkDataBase{
     form
     
 }
+
+pub fn internalqueryconn()->PooledConn{
+    //change
+    let url=String::from("mysql://root:secret@localhost:3306/");
+    let url = url.as_str();
+    let pool = Pool::new(url).unwrap();
+    let conn = pool.get_conn().unwrap();
+    return conn;
+}
+pub fn internalqueryconnapikey()->PooledConn{
+    //change
+    let url=String::from("mysql://root:secret@localhost:3306/ApiKey");
+    let url = url.as_str();
+    let pool = Pool::new(url).unwrap();
+    let conn = pool.get_conn().unwrap();
+    return conn;
+}

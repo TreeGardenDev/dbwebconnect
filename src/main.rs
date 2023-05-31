@@ -20,6 +20,7 @@ pub mod querytable;
 pub mod createrecord;
 pub mod initconnect;
 pub mod createrelationship;
+pub mod connkey;
 
 #[actix_web::main]
 async fn main() {
