@@ -7,19 +7,19 @@
 use mysql::prelude::Queryable;
 
 use crate::dbconnect;
-struct ApiKey {
-    apikey: String,
+pub struct ApiKey {
+    pub apikey: String,
     database: String,
 }
 
 impl ApiKey {
-    fn new() -> ApiKey {
+    pub fn new() -> ApiKey {
 
         ApiKey { apikey:String::new(),
             database:String::new(),}
 
     }
-    fn populatekey(&mut self, database: String) {
+    pub fn populatekey(&mut self, database: String) {
         let mut apikey=String::new();
         
         //want to generate a random number with 19 digits
@@ -53,14 +53,17 @@ pub fn search_apikey(database: String) -> Result<bool, Box<dyn std::error::Error
        return Ok(false)
     }
 }
-pub fn insert_apikey(database: String) -> Result<(), Box<dyn std::error::Error>> {
+pub fn insert_apikey(database: String, hash:String) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn=dbconnect::internalqueryconnapikey();
     let mut apikey=ApiKey::new();
     apikey.populatekey(database);
-    let mut stmt=String::from("INSERT INTO apikeys (apikey,databaseuser) VALUES (");
+    let mut stmt=String::from("INSERT INTO apikeys (apikey,databaseuser, databasepasshash) VALUES (");
     stmt.push_str(&apikey.apikey);
     stmt.push_str(", '");
     stmt.push_str(&apikey.database);
+    stmt.push_str("', '");
+    stmt.push_str(&hash);
+
     stmt.push_str("')");
 
     println!("{}",stmt);
@@ -68,3 +71,37 @@ pub fn insert_apikey(database: String) -> Result<(), Box<dyn std::error::Error>>
 
     Ok(())
 }
+//generate a random password for the database
+//
+pub fn random_password() -> String {
+    let mut password=String::new();
+    //want to generate a random number with 19 digits
+    for _ in 0.. 19{
+        //set rng to random number between 0 and 9
+        let rng:u8 = rand::random::<u8>() % 10;
+
+        password.push_str(&rng.to_string());
+    }
+    password
+}
+//read the hash from the database
+pub fn read_hash(database: String) -> Result<String, Box<dyn std::error::Error>> {
+    let mut conn=dbconnect::internalqueryconnapikey();
+    let mut stmt=String::from("SELECT databasepasshash FROM apikeys WHERE databaseuser= ");
+    stmt.push_str(&database);
+    let mut keyvec:Vec<String> =Vec::new();
+
+    let query = conn.query_map(stmt, |apikey| {
+        
+        keyvec.push(apikey);
+    })?;
+    
+
+    if query.len() > 0 {
+        return Ok(keyvec[0].clone());
+    }
+    else {
+        return Err("No hash found".into());
+    }
+}
+
