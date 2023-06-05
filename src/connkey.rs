@@ -85,20 +85,23 @@ pub fn random_password() -> String {
     password
 }
 //read the hash from the database
-pub fn read_hash(database: String) -> Result<String, Box<dyn std::error::Error>> {
+pub fn read_hash(apikey: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut conn=dbconnect::internalqueryconnapikey();
-    let mut stmt=String::from("SELECT databasepasshash FROM apikeys WHERE databaseuser= ");
-    stmt.push_str(&database);
+    let mut stmt=String::from("SELECT databaseuser, databasepasshash FROM apikeys WHERE apikey= ");
+    stmt.push_str(&apikey);
     let mut keyvec:Vec<String> =Vec::new();
 
-    let query = conn.query_map(stmt, |apikey| {
+    let query = conn.query_map(stmt, |user| {
         
-        keyvec.push(apikey);
+        keyvec.push(user);
+
+
     })?;
     
 
     if query.len() > 0 {
-        return Ok(keyvec[0].clone());
+        //return Ok(keyvec[0].clone());
+        return Ok(keyvec);
     }
     else {
         return Err("No hash found".into());

@@ -1,4 +1,7 @@
-use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
+use actix_web::{web, App,  HttpResponse, HttpServer, Responder, cookie};
+use actix_session::{Session,SessionMiddleware, storage::RedisActorSessionStore};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
+use std::sync::Mutex;
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
 //comment
@@ -28,8 +31,23 @@ async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080"); 
     
-    let server = HttpServer::new(|| {
+    let secretkey=cookie::Key::generate();
+    let redisconnection=String::from("127.0.0.1:6379");
+    let appsess=AppState::new();
+    
+    let server = HttpServer::new(move|| {
         App::new()
+            .wrap(
+                SessionMiddleware::new(
+                    RedisActorSessionStore::new(&redisconnection),
+                    
+                    secretkey.clone(),
+                )
+            )
+            
+            
+            
+            //session cookie
             .app_data(TempFileConfig::default().directory("./tmp"))
             .service(
                 web::resource("/")
@@ -73,6 +91,8 @@ async fn main() {
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
     let _=initconnect::postdatabaseconnection(form.into_inner());
+    //post to appdata from here
+    
     
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -348,6 +368,42 @@ pub struct NewRelationShip{
 pub struct CsvRequestBody{
     data:String,
 }
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct UserData {
+    logged_in: bool,
+}
+
+//create a struct whose lifetime is the same as the application
+struct AppState {
+    authenticated:Mutex<bool>,
+    apikey: Mutex<String>,
+    counter: Mutex<i32>, // <- Mutex is necessary to mutate safely across threads
+
+}
+//make struct AppState available to the application
+impl AppState {
+    fn new() -> Self {
+        Self {
+            //make counter a time that continuously counts up
+            counter: Mutex::new(0), // <- initialize counter
+            authenticated: Mutex::new(false),
+            apikey: Mutex::new("".to_string()),
+        }
+    }
+    fn disable(&self){
+        let mut authenticated=self.authenticated.lock().unwrap();
+        *authenticated=false;
+    }
+    fn enable(&self){
+        let mut authenticated=self.authenticated.lock().unwrap();
+        *authenticated=true;
+    }
+    fn authenticate(&self, apikey: String){
+        let mut key=self.apikey.lock().unwrap();
+        *key=apikey;
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
