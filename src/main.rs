@@ -1,4 +1,7 @@
-use actix_web::{web, App,  HttpResponse, HttpServer, Responder};
+use actix_web::{web, App,  HttpResponse, HttpServer, Responder, cookie};
+use actix_session::{Session,SessionMiddleware, storage::RedisActorSessionStore};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
+use std::sync::Mutex;
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
 //comment
@@ -28,9 +31,26 @@ async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080"); 
     
-    let server = HttpServer::new(|| {
+    let secretkey=cookie::Key::generate();
+    let redisconnection=String::from("127.0.0.1:6379");
+    let appsess=AppState::new();
+    
+    let server = HttpServer::new(move|| {
         App::new()
+            .wrap(
+                SessionMiddleware::new(
+                    RedisActorSessionStore::new(&redisconnection),
+                    
+                    secretkey.clone(),
+                )
+            )
+            
+            
+            
+            //session cookie
             .app_data(TempFileConfig::default().directory("./tmp"))
+            //force users to start at / before going to /main
+
             .service(
                 web::resource("/")
                     .route(web::get().to(getinitializeconnect))
@@ -41,9 +61,9 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route("/createdatabase", web::post().to(createnewdb))
-            .route("/createdatabase/{database}&{databaseuser}&{databasepword}&{port}&{url}", web::post().to(createnewdbweb))
+            .route("/createdatabase/{database}&apikey={apikey}&{port}&{url}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
-            .route("/query/{database}&{table}&{where}&{dbuser}&{dbpassword}", web::get().to(querytojson))
+            .route("/query/{database}&table={table}&select={select}&where={where}&apikey={api}", web::get().to(querytojson))
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -73,6 +93,8 @@ async fn main() {
 }
 async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
     let _=initconnect::postdatabaseconnection(form.into_inner());
+    //post to appdata from here
+    
     
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
@@ -128,16 +150,24 @@ async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 }
-async fn createnewdbweb(info: web::Path<(String,String,String,String,String)>)->impl Responder{
+async fn createnewdbweb(info: web::Path<(String,String,String,String)>)->impl Responder{
+    let valid=connkey::search_apikey_admin(&info.1);
+    if valid.unwrap()==true{
+    
     let database_name=&info.0;
-    let database_user=&info.1;
-    let database_pword=&info.2;
-    let port=&info.3;
-    let url=&info.4;
-    let _ =createdatabase::create_databaseweb( database_name, database_user, database_pword, port, url);
+    let apikey=&info.1;
+    let port=&info.2;
+    let url=&info.3;
+    let _ =createdatabase::create_databaseweb( database_name, apikey);
     HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(include_str!("pages/methodsuccess.html"))
+        .content_type("text/json; charset=utf-8")
+        .body("{'status':'success'}")
+    }
+    else{
+        HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("{'status':'failed'}")
+    }
 }
 async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.clone().to_string());
@@ -213,11 +243,15 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
 }
 async fn querytojson(info: web::Path<(String,String,String,String,String)>)->impl Responder{
     let mut connection=dbconnect::database_connection(&info.0);
+
+    let valid=connkey::search_apikey(&info.0, &info.4);
+    if valid.unwrap()==true{
+
     let database=&info.0;
     let tablename=&info.1;
-    let whereclause=&info.2;
-    let username=&info.3;
-    let password=&info.4;
+    let select=&info.2;
+    let whereclause=&info.3;
+    let apikey=&info.4;
 
     let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database);
     let json= querytable::build_json(queryresult, &database, &tablename, &mut connection);
@@ -229,6 +263,12 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body(json)
+    }
+    else{
+        HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Invalid API Key")
+    }
 }
 async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
     let mut connection=dbconnect::database_connection(&form.database.to_string());
@@ -348,6 +388,42 @@ pub struct NewRelationShip{
 pub struct CsvRequestBody{
     data:String,
 }
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct UserData {
+    logged_in: bool,
+}
+
+//create a struct whose lifetime is the same as the application
+struct AppState {
+    authenticated:Mutex<bool>,
+    apikey: Mutex<String>,
+    counter: Mutex<i32>, // <- Mutex is necessary to mutate safely across threads
+
+}
+//make struct AppState available to the application
+impl AppState {
+    fn new() -> Self {
+        Self {
+            //make counter a time that continuously counts up
+            counter: Mutex::new(0), // <- initialize counter
+            authenticated: Mutex::new(false),
+            apikey: Mutex::new("".to_string()),
+        }
+    }
+    fn disable(&self){
+        let mut authenticated=self.authenticated.lock().unwrap();
+        *authenticated=false;
+    }
+    fn enable(&self){
+        let mut authenticated=self.authenticated.lock().unwrap();
+        *authenticated=true;
+    }
+    fn authenticate(&self, apikey: String){
+        let mut key=self.apikey.lock().unwrap();
+        *key=apikey;
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
