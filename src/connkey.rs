@@ -34,19 +34,20 @@ impl ApiKey {
     }
 }
 
-pub fn search_apikey(database: String) -> Result<bool, Box<dyn std::error::Error>>{
+pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::error::Error>>{
     let mut conn=dbconnect::internalqueryconnapikey();
-    let mut stmt=String::from("SELECT apikey,databaseuser FROM apikeys WHERE databaseuser= ");
+    let mut stmt=String::from("SELECT apikey FROM apikeys WHERE databaseuser= ");
     stmt.push_str(&database);
     let mut keyvec:Vec<String> =Vec::new();
 
-    let query = conn.query_map(stmt, |apikey| {
+    let _ = conn.query_map(stmt, |apikey| {
         
         keyvec.push(apikey);
     })?;
+
     
 
-    if query.len() > 0 {
+    if apikey == keyvec[0] {
         return Ok(true);
     }
     else {
