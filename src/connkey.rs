@@ -54,6 +54,27 @@ pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::
        return Ok(false)
     }
 }
+pub fn search_apikey_admin(apikey:&str)-> Result<bool, Box<dyn std::error::Error>>{
+    
+    let mut conn=dbconnect::internalqueryconnapikey();
+    let stmt=String::from("SELECT apikey FROM apikeys WHERE databaseuser= 'root'");
+    let mut keyvec:Vec<String> =Vec::new();
+
+    let _ = conn.query_map(stmt, |apikey| {
+        
+        keyvec.push(apikey);
+    })?;
+
+    
+
+    if apikey == keyvec[0] {
+        return Ok(true);
+    }
+    else {
+       return Ok(false)
+    }
+}
+
 pub fn insert_apikey(database: String, hash:String) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn=dbconnect::internalqueryconnapikey();
     let mut apikey=ApiKey::new();

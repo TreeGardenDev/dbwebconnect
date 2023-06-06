@@ -150,8 +150,8 @@ async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 }
-async fn createnewdbweb(info: web::Path<(String,String,String,String,String)>)->impl Responder{
-    let valid=connkey::search_apikey(&info.0, &info.1);
+async fn createnewdbweb(info: web::Path<(String,String,String,String)>)->impl Responder{
+    let valid=connkey::search_apikey_admin(&info.1);
     if valid.unwrap()==true{
     
     let database_name=&info.0;
