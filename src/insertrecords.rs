@@ -74,8 +74,6 @@ impl TableDef {
         stmt.push_str(") VALUES (");
         for i in 0..data.len(){
             let typestring=&self.compare_types(&data[i].0, &self.table_fields, &self.table_types);
-            println!("Typestring below");
-            println!("{}", typestring);
 
             match typestring.as_str(){
                 "int(11)" => {
@@ -105,13 +103,11 @@ impl TableDef {
             }
         }
         stmt.push_str(")");
-        println!("{}", stmt);
         conn.query_drop(stmt).unwrap();
 
     }
     fn compare_types(&self, column: &str, fields: &Vec<String>, types: &Vec<String>)->String{
         let colstring=String::from(column);
-        println!("{}", colstring);
         for i in 0..fields.len(){
             if fields[i]==colstring{
                 return types[i].clone();
