@@ -13,7 +13,7 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
     
 }
 
-fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut query = String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");

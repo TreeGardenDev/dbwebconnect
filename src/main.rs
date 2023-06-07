@@ -1,6 +1,7 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder, cookie};
 use actix_session::{Session,SessionMiddleware, storage::RedisActorSessionStore};
 use actix_identity::{CookieIdentityPolicy, IdentityService};
+use serde_json::Value;
 use std::sync::Mutex;
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
@@ -14,6 +15,7 @@ use clap::Parser;
 use csv::Reader;
 use mysql::*;
 use serde::{Deserialize, Serialize};
+pub mod insertrecords;
 pub mod pushdata;
 pub mod getfields;
 pub mod tablecreate;
@@ -46,7 +48,6 @@ async fn main() {
             )
             
             
-            
             //session cookie
             .app_data(TempFileConfig::default().directory("./tmp"))
             //force users to start at / before going to /main
@@ -70,6 +71,7 @@ async fn main() {
                     .route(web::post().to(postcreate)),
             
             )
+            .route("/insert/{database}&table={table}&apikey={api}", web::post().to(dbinsert))
                 
             .route("/create/saveform", web::post().to(saveform))
             .service(
@@ -144,6 +146,36 @@ async fn postupload(
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 }
+async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
+    let valid=connkey::search_apikey(&info.0,&info.2);
+    if valid.unwrap()==true{
+    let body=body.into_inner();
+    //decode json
+    let mut data=Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(),value.to_string()));
+    }
+    let database=&info.0;
+    let table=&info.1;
+    //let apikey=&info.2;
+
+    let mut newtable=insertrecords::TableDef::new();
+    newtable.populate(&table, &database);
+    println!("{:?}",newtable);
+
+
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Insert Successful")
+    }
+    else{
+       HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Invalid API Key")
+    }
+}
+
 async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
     let _ =createdatabase::create_database(&form.database.to_string());
     HttpResponse::Ok()
