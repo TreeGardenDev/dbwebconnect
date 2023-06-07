@@ -36,12 +36,14 @@ impl ApiKey {
 
 pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::error::Error>>{
     let mut conn=dbconnect::internalqueryconnapikey();
-    let mut stmt=String::from("SELECT apikey FROM apikeys WHERE databaseuser= ");
+    let mut stmt=String::from("SELECT apikey FROM apikeys WHERE databaseuser= '");
     stmt.push_str(&database);
+    stmt.push_str("'");
+
+
     let mut keyvec:Vec<String> =Vec::new();
 
     let _ = conn.query_map(stmt, |apikey| {
-        
         keyvec.push(apikey);
     })?;
 
