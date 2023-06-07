@@ -19,6 +19,7 @@ pub fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> s
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
     query.push_str("'");
+    query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
     let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
     Ok(stmt)
 }

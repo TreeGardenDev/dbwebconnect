@@ -155,6 +155,9 @@ async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>
     for (key, value) in body.as_object().unwrap().iter() {
         data.push((key.to_string(),value.to_string()));
     }
+    println!("DATA BELOW");
+    println!("{:?}",data);
+
     let database=&info.0;
     let table=&info.1;
     //let apikey=&info.2;
@@ -162,6 +165,17 @@ async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>
     let mut newtable=insertrecords::TableDef::new();
     newtable.populate(&table, &database);
     println!("{:?}",newtable);
+
+    let valid= newtable.compare_fields(&data);
+    if valid {
+        let _ =newtable.insert(&data, &table, &database);
+
+    }
+    else{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Invalid Data");
+    }
 
 
 
