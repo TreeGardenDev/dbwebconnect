@@ -61,6 +61,7 @@ async fn main() {
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
+            .route("/createtable/{database}&table={table}&apikey={apikey}", web::post().to(createtableweb))
             .route("/createdatabase", web::post().to(createnewdb))
             .route("/createdatabase/{database}&apikey={apikey}&{port}&{url}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
@@ -145,6 +146,38 @@ async fn postupload(
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createtableweb(info:web::Path<(String, String, String)>, body:web::Json<Value>)->impl Responder{
+
+        let valid=connkey::search_apikey(&info.0,&info.2);
+        if valid.unwrap()==true{
+        let mut conn=dbconnect::internalqueryconnapikey();
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            data.push((key.to_string(),value.to_string()));
+        }
+        println!("{:?}",data);
+        let database=&info.0;
+        let table=&info.1;
+        let parsed_json=tablecreate::parse_json(data);
+        let _=tablecreate::create_table_web(&mut conn, &database,&table,&parsed_json.0, &parsed_json.1);
+        
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Table Created")
+        }
+        else{
+            
+            HttpResponse::Ok()
+                .content_type("text/json; charset=utf-8")
+                .body("Invalid API Key")
+        }
+
+        
+        
+    
 }
 async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
     let valid=connkey::search_apikey(&info.0,&info.2);
