@@ -1,8 +1,10 @@
 use mysql::prelude::*;
 use mysql::*;
 //read from csv file to create table in mariadb with given column names
-pub fn create_table(conn: &mut PooledConn, table_name: &str, column_names: &Vec<String>, column_types: &Vec<String> ){
+pub fn create_table(conn: &mut PooledConn,database:&str, table_name: &str, column_names: &Vec<String>, column_types: &Vec<String> ){
     let mut query = String::from("CREATE TABLE ");
+    query.push_str(database);
+    query.push_str(".");
     query.push_str(table_name);
     query.push_str(" (");
     for i in 0..column_names.len() {

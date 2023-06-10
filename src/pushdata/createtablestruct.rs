@@ -1,5 +1,6 @@
 use crate::Data2;
 use crate::Reader;
+use crate::dbconnect;
 use crate::pushdata;
 pub fn read_csv2(file: &String, tablename:&String, database:&String) -> std::result::Result<(), Box<dyn std::error::Error>> {
     
@@ -48,7 +49,7 @@ pub fn read_csv2(file: &String, tablename:&String, database:&String) -> std::res
   // println!("Table: {}", tablename);
    // println!("{:?}", data);
     //let tablename= std::env::args().nth(2).expect("No Table");
-    let connection = crate::dbconnect::database_connection(database);
+    let connection = dbconnect::internalqueryconn();
     let _ = pushdata::execute_insert2(data, tablename,connection, database.to_string());
     Ok(())
 }
