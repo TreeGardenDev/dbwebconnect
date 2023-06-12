@@ -51,14 +51,8 @@ input {
     html.push_str("<br><br>");
     html.push_str("<h1>Initialize Database Connection</h1>");
     html.push_str("<form action=\"/\" method=\"post\">");
-    html.push_str("<label for=\"dbuser\">Username:</label>");
-    html.push_str("<input type=\"text\" id=\"dbuser\" name=\"dbuser\"><br><br>");
-    html.push_str("<label for=\"dbpass\">Password:</label>");
-    html.push_str("<input type=\"text\" id=\"dbpass\" name=\"dbpass\"><br><br>");
-    html.push_str("<label for=\"dbhost\">Host:</label>");
-    html.push_str("<input type=\"text\" id=\"dbhost\" name=\"dbhost\"><br><br>");
-    html.push_str("<label for=\"dbport\">Port:</label>");
-    html.push_str("<input type=\"text\" id=\"dbport\" name=\"dbport\"><br><br>");
+    html.push_str("<label for=\"apikey\">Authorized Api Key:</label>");
+    html.push_str("<input type=\"text\" id=\"apikey\" name=\"apikey\"><br><br>");
     html.push_str("<input type=\"submit\" value=\"Submit\">");
     html.push_str("</form>");
     html.push_str("</body>");
@@ -69,29 +63,36 @@ input {
 }
 
 pub fn postdatabaseconnection(form: LinkDataBase) {
+    //set appdata to boolean for connected
+    
+
+
+    //
+    //
+    //
     //get form data from getpagehtml
     //use form data to connect to database
     //return connection
     //let mut connection=dbconnect::database_connection(&form.database.to_string());
     //get user input from form data from create function
-    let username = form.dbuser;
-    let password = form.dbpass;
-    let host = form.dbhost;
-    let port = form.dbport;
+   // let username = form.dbuser;
+  //  let password = form.dbpass;
+  //  let host = form.dbhost;
+  //  let port = form.dbport;
     //save results to file in tmp directory
-    let mut path = String::from("tmp/");
-    //make directory if it does not exist
-//    path.push_str(&username.to_string());
-  //  std::fs::create_dir_all(&path).unwrap();
-    path.push_str("dbconnection.txt");
-    let mut file = File::create(path).unwrap();
-    file.write_all(username.as_bytes()).unwrap();
-   file.write_all(",".as_bytes()).unwrap();
-    file.write_all(password.as_bytes()).unwrap();
-   file.write_all(",".as_bytes()).unwrap();
-    file.write_all(host.as_bytes()).unwrap();
-   file.write_all(",".as_bytes()).unwrap();
-    file.write_all(port.as_bytes()).unwrap();
-    //return connection
+//    let mut path = String::from("tmp/");
+//    //make directory if it does not exist
+////    path.push_str(&username.to_string());
+//  //  std::fs::create_dir_all(&path).unwrap();
+//    path.push_str("dbconnection.txt");
+//    let mut file = File::create(path).unwrap();
+//    file.write_all(username.as_bytes()).unwrap();
+//   file.write_all(",".as_bytes()).unwrap();
+//    file.write_all(password.as_bytes()).unwrap();
+//   file.write_all(",".as_bytes()).unwrap();
+//    file.write_all(host.as_bytes()).unwrap();
+//   file.write_all(",".as_bytes()).unwrap();
+//    file.write_all(port.as_bytes()).unwrap();
+//    //return connection
 
 }

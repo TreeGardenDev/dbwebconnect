@@ -42,7 +42,6 @@ async fn main() {
             .wrap(
                 SessionMiddleware::new(
                     RedisActorSessionStore::new(&redisconnection),
-                    
                     secretkey.clone(),
                 )
             )
@@ -61,8 +60,9 @@ async fn main() {
             .route("/auth", web::post().to(auth))
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
+            .route("/createtable/{database}&table={table}&apikey={apikey}", web::post().to(createtableweb))
             .route("/createdatabase", web::post().to(createnewdb))
-            .route("/createdatabase/{database}&apikey={apikey}&{port}&{url}", web::post().to(createnewdbweb))
+            .route("/createdatabase/{database}&apikey={apikey}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
             .route("/query/{database}&table={table}&select={select}&where={where}&apikey={api}", web::get().to(querytojson))
             .service(
@@ -79,6 +79,7 @@ async fn main() {
                     .route(web::get().to(getupload))
                     .route(web::post().to(postupload)),
             )
+            .route("/relationship/{database}&apikey={api}", web::post().to(createrelationshipweb))
             .service(
                 web::resource("/createrelation")
                     .route(web::get().to(getcreaterelation))
@@ -93,14 +94,26 @@ async fn main() {
     println!("Starting server at {}", args);
     server.bind(args).expect("Can not bind to port 8080").run().await.unwrap();
 }
-async fn postinitializeconnect(form:web::Form<LinkDataBase> )->impl Responder{
-    let _=initconnect::postdatabaseconnection(form.into_inner());
+async fn postinitializeconnect(form:web::Form<ApiKey> )->impl Responder{
+    let valid=connkey::search_apikey_admin(&form.apikey).unwrap();
+    if valid==true{
+        //let _=initconnect::postdatabaseconnection(form.into_inner());
+        HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(include_str!("page.html"))
+    }
+    else{
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("{\"error\":\"Invalid API Key\"}")
+    }
+    //let _=initconnect::postdatabaseconnection(form.into_inner());
     //post to appdata from here
     
     
-    HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(include_str!("page.html"))
+   // HttpResponse::Ok()
+   //     .content_type("text/html; charset=utf-8")
+   //     .body(include_str!("page.html"))
 }
 async fn getinitializeconnect()->impl Responder{
     let html=initconnect::getpagehtml();
@@ -145,6 +158,61 @@ async fn postupload(
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createrelationshipweb(info:web::Path<(String, String)>, body:web::Json<Value>)->impl Responder{
+    let valid=connkey::search_apikey(&info.0,&info.1);
+    if valid.unwrap()==true{
+        
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            let parsed=createrelationship::parse_json(value.to_string());
+            println!("{:?}",parsed);
+            data.push((key.to_string(),parsed));
+        }
+        let relationship=createrelationship::createrelationshipfromweb(&info.0, data);
+        let _=createrelationship::commitrelationshipfromweb(relationship);
+        
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 200 Relationship Created")
+    }
+    else{
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+    }
+}
+async fn createtableweb(info:web::Path<(String, String, String)>, body:web::Json<Value>)->impl Responder{
+
+        let valid=connkey::search_apikey(&info.0,&info.2);
+        if valid.unwrap()==true{
+        let mut conn=dbconnect::internalqueryconnapikey();
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            data.push((key.to_string(),value.to_string()));
+        }
+        println!("{:?}",data);
+        let database=&info.0;
+        let table=&info.1;
+        let parsed_json=tablecreate::parse_json(data);
+        let _=tablecreate::create_table_web(&mut conn, &database,&table,&parsed_json.0, &parsed_json.1);
+        
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Table Created")
+        }
+        else{
+            
+            HttpResponse::Ok()
+                .content_type("text/json; charset=utf-8")
+                .body("Invalid API Key")
+        }
+        
 }
 async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
     let valid=connkey::search_apikey(&info.0,&info.2);
@@ -196,34 +264,33 @@ async fn createnewdb(form: web::Form<NewDataBase>)->impl Responder{
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
 }
-async fn createnewdbweb(info: web::Path<(String,String,String,String)>)->impl Responder{
+async fn createnewdbweb(info: web::Path<(String,String)>)->impl Responder{
     let valid=connkey::search_apikey_admin(&info.1);
     if valid.unwrap()==true{
     
     let database_name=&info.0;
     let apikey=&info.1;
-    let port=&info.2;
-    let url=&info.3;
     let _ =createdatabase::create_databaseweb( database_name, apikey);
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
-        .body("{'status':'success'}")
+        .body("Success 200: Database Created")
     }
     else{
         HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
-        .body("{'status':'failed'}")
+        .body("Err 500: Not a valid API Key")
     }
 }
 async fn createtable(MultipartForm(form):MultipartForm<CreateTable>) -> impl Responder{
-    let mut connection=dbconnect::database_connection(&form.database.clone().to_string());
+    let mut connection=dbconnect::internalqueryconn();
+    let database=&form.database.clone();
     let tablename=&form.table.clone().to_string();
     let file=createrecord::generateform::uploadnewcols(form);
     println!("file here debug: {}",file);
     let columns=getfields::read_fields(&file);
     let types=getfields::read_types(&file);
 
-    let _ =tablecreate::create_table(&mut connection,&tablename,&columns,&types);
+    let _ =tablecreate::create_table(&mut connection,&database, &tablename,&columns,&types);
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
@@ -235,10 +302,11 @@ async fn method(form: web::Form<FormData>)->impl Responder{
     }
     if form.method=="create"{
         let mut connection=dbconnect::database_connection(&form.database.to_string());
+        let datbase=&form.database.to_string();
         let tablename=&form.table.to_string();
         let columns=getfields::read_fields(&form.csvpath.display().to_string());
         let types=getfields::read_types(&form.csvpath.display().to_string());
-        let _ =tablecreate::create_table(&mut connection,&tablename,&columns,&types);
+        let _ =tablecreate::create_table(&mut connection,&datbase, &tablename,&columns,&types);
     }
     else if form.method=="newdb"{
         createdatabase::create_database(&form.database.to_string());
@@ -288,10 +356,10 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         .body(html)
 }
 async fn querytojson(info: web::Path<(String,String,String,String,String)>)->impl Responder{
-    let mut connection=dbconnect::database_connection(&info.0);
 
     let valid=connkey::search_apikey(&info.0, &info.4);
     if valid.unwrap()==true{
+        let mut connection=dbconnect::internalqueryconn();
 
     let database=&info.0;
     let tablename=&info.1;
@@ -300,15 +368,15 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
     let apikey=&info.4;
 
     let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database);
+    println!("Query result below");
+    println!("{:?}",queryresult);
     let json= querytable::build_json(queryresult, &database, &tablename, &mut connection);
-    println!("JSON BELOW");
-    println!("{:?}",json);
 
 
 
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
-        .body(json)
+        .body(json.to_string())
     }
     else{
         HttpResponse::Ok()
@@ -361,11 +429,17 @@ pub struct FormData {
     table: String,
     csvpath: std::path::PathBuf,
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct QueryData {
     database: String,
     table: String,
     whereclause: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApiKey{
+    apikey: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]

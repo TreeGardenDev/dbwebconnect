@@ -19,6 +19,7 @@ fn execute_insert2(
     let insertstatement =gettablecol::createinsertstatement(&mut conn, &tablename, data, &database);
     println!("{}", insertstatement);
 
-    conn.query_drop(insertstatement)?;
+    conn.query_drop(insertstatement);
+    println!("Inserted data into table");
     Ok(())
 }

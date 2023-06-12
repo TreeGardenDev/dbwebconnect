@@ -21,6 +21,8 @@ pub fn get_table_col(conn: &mut PooledConn, table_name: &str, database_name: &st
 pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<Data2>, database: &str) -> String
 {
     let mut insertstatement = String::from("insert into ");
+    insertstatement.push_str(database);
+    insertstatement.push_str(".");
     insertstatement.push_str(table_name);
     insertstatement.push_str(" (");
     let col_vec = get_table_col(conn, table_name, database).unwrap();
