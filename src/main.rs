@@ -79,6 +79,7 @@ async fn main() {
                     .route(web::get().to(getupload))
                     .route(web::post().to(postupload)),
             )
+            .route("/relationship/{database}&apikey={api}", web::post().to(createrelationshipweb))
             .service(
                 web::resource("/createrelation")
                     .route(web::get().to(getcreaterelation))
@@ -157,6 +158,32 @@ async fn postupload(
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(include_str!("pages/methodsuccess.html"))
+}
+async fn createrelationshipweb(info:web::Path<(String, String)>, body:web::Json<Value>)->impl Responder{
+    let valid=connkey::search_apikey(&info.0,&info.1);
+    if valid.unwrap()==true{
+        
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            let parsed=createrelationship::parse_json(value.to_string());
+            println!("{:?}",parsed);
+            data.push((key.to_string(),parsed));
+        }
+        let relationship=createrelationship::createrelationshipfromweb(&info.0, data);
+        let _=createrelationship::commitrelationshipfromweb(relationship);
+        
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 200 Relationship Created")
+    }
+    else{
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+    }
 }
 async fn createtableweb(info:web::Path<(String, String, String)>, body:web::Json<Value>)->impl Responder{
 
