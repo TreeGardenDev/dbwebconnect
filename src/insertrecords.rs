@@ -58,8 +58,7 @@ impl TableDef {
         }
         true
     }
-    pub fn insert(self, data:&Vec<(String, String)>, table: &str, database: &str){
-        let mut conn = dbconnect::internalqueryconn();
+    pub fn insert(self, data:&Vec<(String, String)>, table: &str, database: &str)->String{
         let mut stmt= String::from("INSERT INTO ");
         stmt.push_str(database);
         stmt.push_str(".");
@@ -103,7 +102,7 @@ impl TableDef {
             }
         }
         stmt.push_str(")");
-        conn.query_drop(stmt).unwrap();
+        stmt
 
     }
     fn compare_types(&self, column: &str, fields: &Vec<String>, types: &Vec<String>)->String{
@@ -117,6 +116,11 @@ impl TableDef {
         String::from("NULL")
 
     }
+}
+pub fn exec_insert(statement:String)->Result<String>{
+    let mut conn = dbconnect::internalqueryconn();
+    conn.query_drop(statement).unwrap();
+    Ok(String::from("Success"))
 }
 
 
