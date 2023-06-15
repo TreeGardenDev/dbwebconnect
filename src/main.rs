@@ -1,11 +1,9 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder, cookie};
-use actix_session::{Session,SessionMiddleware, storage::RedisActorSessionStore};
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_session::{SessionMiddleware, storage::RedisActorSessionStore};
+//use actix_identity::{CookieIdentityPolicy, IdentityService};
 use serde_json::Value;
-use std::sync::Mutex;
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
-//comment
 //use crate::createrecord::generateform::CreateRelation;
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
@@ -31,13 +29,11 @@ pub mod connkey;
 
 #[actix_web::main]
 async fn main() {
-    //grab the first argument
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080"); 
     
     let secretkey=cookie::Key::generate();
     let redisconnection=String::from("127.0.0.1:6379");
-    let appsess=AppState::new();
     
     let server = HttpServer::new(move|| {
         App::new()
@@ -327,8 +323,8 @@ async fn createnewdbweb(info: web::Path<(String,String)>)->impl Responder{
     if valid.unwrap()==true{
     
     let database_name=&info.0;
-    let apikey=&info.1;
-    let _ =createdatabase::create_databaseweb( database_name, apikey);
+    //let apikey=&info.1;
+    let _ =createdatabase::create_databaseweb(database_name);
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Success 200: Database Created")
@@ -421,9 +417,9 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
 
     let database=&info.0;
     let tablename=&info.1;
-    let select=&info.2;
+    //let select=&info.2;
     let whereclause=&info.3;
-    let apikey=&info.4;
+    //let apikey=&info.4;
 
     let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database);
     println!("Query result below");
@@ -454,7 +450,7 @@ async fn getcreate(form: web::Form<NewCsv>)-> impl Responder{
         .body(html)
 }
 async fn postcreate(form: web::Form<SaveNewCsv>)-> impl Responder{
-    let connection=dbconnect::database_connection(&form.database.to_string());
+    //let connection=dbconnect::database_connection(&form.database.to_string());
     //let tablename=&form.table.to_string();
     //let database=&form.database.to_string();
    // let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
@@ -571,36 +567,6 @@ struct UserData {
     logged_in: bool,
 }
 
-//create a struct whose lifetime is the same as the application
-struct AppState {
-    authenticated:Mutex<bool>,
-    apikey: Mutex<String>,
-    counter: Mutex<i32>, // <- Mutex is necessary to mutate safely across threads
-
-}
-//make struct AppState available to the application
-impl AppState {
-    fn new() -> Self {
-        Self {
-            //make counter a time that continuously counts up
-            counter: Mutex::new(0), // <- initialize counter
-            authenticated: Mutex::new(false),
-            apikey: Mutex::new("".to_string()),
-        }
-    }
-    fn disable(&self){
-        let mut authenticated=self.authenticated.lock().unwrap();
-        *authenticated=false;
-    }
-    fn enable(&self){
-        let mut authenticated=self.authenticated.lock().unwrap();
-        *authenticated=true;
-    }
-    fn authenticate(&self, apikey: String){
-        let mut key=self.apikey.lock().unwrap();
-        *key=apikey;
-    }
-}
 
 
 #[cfg(test)]
@@ -640,27 +606,41 @@ mod tests {
         assert_eq!(new_relationship.onupdate, "CASCADE");
         assert_eq!(new_relationship.ondelete, "CASCADE");
     }
-//    #[test]
-//    fn test_insert_record(){
-//        let database="unit_tests";
-//        let table="testinsertupdatedelete";
-//        let data=vec![("col1".to_string(), "50".to_string()),("col2".to_string(), "Test Addition".to_string())];
-//        let mut newrecord=TableDef::new();
-//        newrecord.populate(table, database);
-//        assert_eq!(newrecord.table_types, vec!["int(11)".to_string(), "varchar(255)".to_string()]);
-//        assert_eq!(newrecord.table_fields, vec!["col1".to_string(), "col2".to_string()]);
-//        println!("{:?}", newrecord);
-//        let validvec:Vec<bool>=Vec::new();
-//        for i in 0..newrecord.table_fields.len(){
-//
-//        }
-//        let valid= newrecord.compare_fields(&data);
-//        assert_eq!(valid, true);
-//        let insert =newrecord.insert(&data, &table, &database);
-//
-//        
-//
-//    }
+    #[test]
+    fn test_insert_record(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let data=vec![("col1".to_string(), "50".to_string()),("col2".to_string(), "Test Addition".to_string())];
+        let mut newrecord=TableDef::new();
+        //newrecord.populate(table, database);
+        newrecord.table_fields.push("col1".to_string());
+        newrecord.table_fields.push("col2".to_string());
+        newrecord.table_types.push("int(11)".to_string());
+        newrecord.table_types.push("varchar(255)".to_string());
+
+        assert_eq!(newrecord.table_types, vec!["int(11)".to_string(), "varchar(255)".to_string()]);
+        assert_eq!(newrecord.table_fields, vec!["col1".to_string(), "col2".to_string()]);
+        println!("{:?}", newrecord);
+        let mut validvec:Vec<bool>=Vec::new();
+        for i in 0..newrecord.table_fields.len(){
+            validvec.push(false);
+            for j in 0..data.len(){
+                if newrecord.table_fields[i]==data[j].0{
+                    validvec[i]=true;
+                }
+            }
+        }
+        for i in 0..validvec.len(){
+            assert_eq!(validvec[i], true);
+        }
+        let valid= newrecord.compare_fields(&data);
+        assert_eq!(valid, true);
+        let insert =newrecord.insert(&data, &table, &database);
+        assert_eq!(insert, String::from("INSERT INTO unit_tests.testinsertupdatedelete (col1, col2) VALUES (50, 'Test Addition')"));
+
+        
+
+    }
     #[test]
     fn test_update_record(){
         let database="unit_tests";

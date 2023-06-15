@@ -1,7 +1,7 @@
 // Purpose: generate form for table
 use uuid::Uuid;
 use std::io::Write;
-use futures_util::{TryStreamExt as _, TryStream};
+use futures_util::{TryStreamExt as _,};
 use actix_multipart::Multipart;
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
@@ -31,7 +31,7 @@ pub struct CreateRelation{
 
 
 //use file from Insert form in file_upload2
-pub fn getCreateRelationship()->String{
+pub fn get_create_relationship()->String{
     let html = r#"<html>
         <style>
     body {

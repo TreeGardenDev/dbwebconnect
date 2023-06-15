@@ -7,7 +7,7 @@ use crate::dbconnect;
 use crate::querytable;
 use mysql::prelude::Queryable;
 use serde::{Deserialize, Serialize};
-use serde_json::{Result, Value};
+use serde_json::Result;
 use mysql;
 
 #[derive(Serialize, Deserialize, Debug)]

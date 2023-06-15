@@ -1,7 +1,7 @@
 //initialize conenction parameters like username, password, host, port
-use crate::LinkDataBase;
-use std::fs::File;
-use std::io::Write;
+//use crate::LinkDataBase;
+//use std::fs::File;
+//use std::io::Write;
 
 
 pub fn getpagehtml() -> String{
@@ -62,37 +62,3 @@ input {
     html
 }
 
-pub fn postdatabaseconnection(form: LinkDataBase) {
-    //set appdata to boolean for connected
-    
-
-
-    //
-    //
-    //
-    //get form data from getpagehtml
-    //use form data to connect to database
-    //return connection
-    //let mut connection=dbconnect::database_connection(&form.database.to_string());
-    //get user input from form data from create function
-   // let username = form.dbuser;
-  //  let password = form.dbpass;
-  //  let host = form.dbhost;
-  //  let port = form.dbport;
-    //save results to file in tmp directory
-//    let mut path = String::from("tmp/");
-//    //make directory if it does not exist
-////    path.push_str(&username.to_string());
-//  //  std::fs::create_dir_all(&path).unwrap();
-//    path.push_str("dbconnection.txt");
-//    let mut file = File::create(path).unwrap();
-//    file.write_all(username.as_bytes()).unwrap();
-//   file.write_all(",".as_bytes()).unwrap();
-//    file.write_all(password.as_bytes()).unwrap();
-//   file.write_all(",".as_bytes()).unwrap();
-//    file.write_all(host.as_bytes()).unwrap();
-//   file.write_all(",".as_bytes()).unwrap();
-//    file.write_all(port.as_bytes()).unwrap();
-//    //return connection
-
-}
