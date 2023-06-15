@@ -266,7 +266,8 @@ async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>
 
     let valid= newtable.compare_fields(&data);
     if valid {
-        let _ =newtable.insert(&data, &table, &database);
+        let stmt =newtable.insert(&data, &table, &database);
+        let _=insertrecords::exec_insert(stmt);
 
     }
     else{
@@ -290,15 +291,18 @@ async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>
 async fn dbupdaterecord(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
     let valid=connkey::search_apikey(&info.0,&info.2);
     if valid.unwrap()==true{
-        let mut conn=dbconnect::internalqueryconnapikey();
+        let conn=dbconnect::internalqueryconnapikey();
         let body=body.into_inner();
         let mut data=Vec::new();
         for (key, value) in body.as_object().unwrap().iter() {
+            //strip out quotes
+            let value=value.to_string().replace("\"","");
         data.push((key.to_string(),value.to_string()));
         }
         let database=&info.0;
         let table=&info.1;
-        let _=update::updaterecord(conn, database, table, data);
+        let statement=update::updaterecord(database, table, data);
+        let _=update::executeupdaterecord(conn, &statement);
 
 
         HttpResponse::Ok()
@@ -601,6 +605,8 @@ impl AppState {
 
 #[cfg(test)]
 mod tests {
+    use crate::insertrecords::TableDef;
+
     use super::*;
 
     #[test]
@@ -633,5 +639,40 @@ mod tests {
         assert_eq!(new_relationship.column2, "column2");
         assert_eq!(new_relationship.onupdate, "CASCADE");
         assert_eq!(new_relationship.ondelete, "CASCADE");
+    }
+//    #[test]
+//    fn test_insert_record(){
+//        let database="unit_tests";
+//        let table="testinsertupdatedelete";
+//        let data=vec![("col1".to_string(), "50".to_string()),("col2".to_string(), "Test Addition".to_string())];
+//        let mut newrecord=TableDef::new();
+//        newrecord.populate(table, database);
+//        assert_eq!(newrecord.table_types, vec!["int(11)".to_string(), "varchar(255)".to_string()]);
+//        assert_eq!(newrecord.table_fields, vec!["col1".to_string(), "col2".to_string()]);
+//        println!("{:?}", newrecord);
+//        let validvec:Vec<bool>=Vec::new();
+//        for i in 0..newrecord.table_fields.len(){
+//
+//        }
+//        let valid= newrecord.compare_fields(&data);
+//        assert_eq!(valid, true);
+//        let insert =newrecord.insert(&data, &table, &database);
+//
+//        
+//
+//    }
+    #[test]
+    fn test_update_record(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let mut data:Vec<(String,String)>=Vec::new();
+        data.push(("INTERNAL_PRIMARY_KEY".to_string(), "1".to_string()));
+        data.push(("col1".to_string(), "50".to_string()));
+        data.push(("col2".to_string(), "Changed".to_string()));
+
+        let update=update::updaterecord(database, table, data);
+        //assert_eq!(update.unwrap(), String::from("Success"));
+        assert_eq!(update, String::from("UPDATE unit_tests.testinsertupdatedelete SET col1= \"50\", col2= \"Changed\" WHERE INTERNAL_PRIMARY_KEY=1"));
+        
     }
 }
