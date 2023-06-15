@@ -15,6 +15,8 @@ use clap::Parser;
 use csv::Reader;
 use mysql::*;
 use serde::{Deserialize, Serialize};
+pub mod update;
+pub mod delete;
 pub mod insertrecords;
 pub mod pushdata;
 pub mod getfields;
@@ -72,6 +74,7 @@ async fn main() {
             
             )
             .route("/insert/{database}&table={table}&apikey={api}", web::post().to(dbinsert))
+            .route("/updaterecord/{database}&table={table}&apikey={api}", web::post().to(dbupdaterecord))
                 
             .route("/create/saveform", web::post().to(saveform))
             .service(
@@ -80,6 +83,7 @@ async fn main() {
                     .route(web::post().to(postupload)),
             )
             .route("/relationship/{database}&apikey={api}", web::post().to(createrelationshipweb))
+            .route("/deleterecord/{database}&table={table}&apikey={api}", web::post().to(deleterecord))
             .service(
                 web::resource("/createrelation")
                     .route(web::get().to(getcreaterelation))
@@ -185,6 +189,32 @@ async fn createrelationshipweb(info:web::Path<(String, String)>, body:web::Json<
             .body("Status: 400 Invalid API Key")
     }
 }
+async fn deleterecord(info:web::Path<(String, String, String)>, body:web::Json<Value>)->impl Responder{
+    let valid=connkey::search_apikey(&info.0,&info.2);
+    if valid.unwrap()==true{
+        let mut conn=dbconnect::internalqueryconnapikey();
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            data.push((key.to_string(),value.to_string()));
+        }
+        let database=&info.0;
+        let table=&info.1;
+        //let parsed_json=tablecreate::parse_json(data);
+        let _=delete::deleterecord(&mut conn, &database,&table, data);
+        
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 200 Record Deleted")
+    }
+    else{
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+    }
+}
 async fn createtableweb(info:web::Path<(String, String, String)>, body:web::Json<Value>)->impl Responder{
 
         let valid=connkey::search_apikey(&info.0,&info.2);
@@ -253,6 +283,30 @@ async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>
     }
     else{
        HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Invalid API Key")
+    }
+}
+async fn dbupdaterecord(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
+    let valid=connkey::search_apikey(&info.0,&info.2);
+    if valid.unwrap()==true{
+        let mut conn=dbconnect::internalqueryconnapikey();
+        let body=body.into_inner();
+        let mut data=Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(),value.to_string()));
+        }
+        let database=&info.0;
+        let table=&info.1;
+        let _=update::updaterecord(conn, database, table, data);
+
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Update Successful")
+    }
+    else{
+        HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Invalid API Key")
     }
