@@ -72,24 +72,26 @@ impl TableDef {
         }
         stmt.push_str(") VALUES (");
         for i in 0..data.len(){
+            let valuedata=data[i].1.replace("\"", "");
+
             let typestring=&self.compare_types(&data[i].0, &self.table_fields, &self.table_types);
 
             match typestring.as_str(){
                 "int(11)" => {
-                    stmt.push_str(&data[i].1);
+                    stmt.push_str(&valuedata);
 
                 }
                 "varchar(255)" => {
                     stmt.push_str("'");
-                    stmt.push_str(&data[i].1);
+                    stmt.push_str(&valuedata);
                     stmt.push_str("'");
                 }
                 "int(100)" => {
-                    stmt.push_str(&data[i].1);
+                    stmt.push_str(&valuedata);
                 }
                 "varchar(100)" => {
                     stmt.push_str("'");
-                    stmt.push_str(&data[i].1);
+                    stmt.push_str(&valuedata);
                     stmt.push_str("'");
                 }
                 _ => {
