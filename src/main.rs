@@ -31,6 +31,7 @@ pub mod connkey;
 async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080"); 
+    //let pword=std::env::args().nth(2).unwrap();
     
     let secretkey=cookie::Key::generate();
     let redisconnection=String::from("127.0.0.1:6379");
