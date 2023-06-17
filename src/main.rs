@@ -691,4 +691,28 @@ mod tests {
         assert_eq!(update, String::from("UPDATE unit_tests.testinsertupdatedelete SET col1= \"50\", col2= \"Changed\" WHERE INTERNAL_PRIMARY_KEY=1"));
         
     }
+    #[test]
+    fn test_delete_record(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let mut data:Vec<(String,String)>=Vec::new();
+        data.push(("1".to_string(), "1".to_string()));
+        data.push(("2".to_string(), "2".to_string()));
+        let statement=delete::deleterecord(database, table, data);
+        assert_eq!(statement.unwrap(), String::from("DELETE FROM unit_tests.testinsertupdatedelete WHERE INTERNAL_PRIMARY_KEY in( 1, 2)"));
+    }
+    #[test]
+    fn test_drop_table(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let statement=delete::droptable(database, table);
+        assert_eq!(statement.unwrap(), String::from("DROP TABLE unit_tests.testinsertupdatedelete"));
+    }
+    #[test]
+    fn test_drop_backup(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let statement=delete::generate_backup(database, table);
+        assert_eq!(statement.unwrap(), String::from("SELECT * INTO OUTFILE '/tmp/unit_tests_testinsertupdatedelete.csv' FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' FROM unit_tests.testinsertupdatedelete"));
+    }
 }
