@@ -60,6 +60,7 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route("/createtable/{database}&table={table}&apikey={apikey}", web::post().to(createtableweb))
+            .route("/droptable/{database}&table={table}&apikey={apikey}", web::post().to(droptableweb))
             .route("/createdatabase", web::post().to(createnewdb))
             .route("/createdatabase/{database}&apikey={apikey}", web::post().to(createnewdbweb))
             .route("/query", web::post().to(query))
@@ -198,7 +199,8 @@ async fn deleterecord(info:web::Path<(String, String, String)>, body:web::Json<V
         let database=&info.0;
         let table=&info.1;
         //let parsed_json=tablecreate::parse_json(data);
-        let _=delete::deleterecord(&mut conn, &database,&table, data);
+        let statement=delete::deleterecord(&database,&table, data);
+        let _=delete::exec_statement(&mut conn, &statement.unwrap());
         
 
         HttpResponse::Ok()
@@ -240,6 +242,39 @@ async fn createtableweb(info:web::Path<(String, String, String)>, body:web::Json
                 .body("Invalid API Key")
         }
         
+}
+async fn droptableweb(info:web::Path<(String,String,String)>, body:web::Json<Value>)-> impl Responder{
+    let valid=connkey::search_apikey(&info.0, &info.2);
+    if valid.unwrap()==false{
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid API Key")
+    }
+    let mut conn=dbconnect::internalqueryconn();
+    let body=body.into_inner();
+    //let mut data=Vec::new();
+    let mut backup=false;
+    for (_, value) in body.as_object().unwrap().iter() {
+    //    data.push((key.to_string(),value.to_string()));
+        backup=value.as_bool().unwrap();
+    //
+    }
+    println!("{:?}",backup);
+    let database=&info.0;
+    let table=&info.1;
+    if backup==true{
+        let backup=delete::generate_backup(database, table);
+        let _=delete::exec_statement(&mut conn, &backup.unwrap());
+    }
+        //let _=droptable::droptable(&mut conn, &database,&table, false);
+    let statement=delete::droptable(&database, &table);
+    let _=delete::exec_statement(&mut conn, &statement.unwrap());
+    
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Table Dropped")
+
+    
 }
 async fn dbinsert(info: web::Path<(String,String,String)>, body:web::Json<Value>)->impl Responder{
     let valid=connkey::search_apikey(&info.0,&info.2);
