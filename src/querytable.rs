@@ -4,8 +4,10 @@ use serde_json::json;
 use serde_json::Value;
 use crate::pushdata::gettablecol;
 pub mod displayquery;
-pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str)->Vec<Vec<String>>{
-    let columns = gettablecol::get_table_col(conn,table, database).unwrap();
+pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, database: &str, select: Vec<&str>)->Vec<Vec<String>>{
+    //let columns = gettablecol::get_table_col(conn,table, database, select).unwrap();
+    let columns_stmt=grab_columnnames(conn, table, database, select).unwrap();
+    let columns=exec_map(conn, &columns_stmt).unwrap();
 
     //let columntypes = grab_columntypes(conn, table, database).unwrap();
 
@@ -15,15 +17,42 @@ pub fn query_tables(table: &str, conn: &mut PooledConn, whereclause: &str, datab
     
 }
 
-pub fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn exec_map(conn: &mut PooledConn, query: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    let stmt: Vec<String> = conn.query_map(query, |data| data)?;
+    Ok(stmt)
+}
+pub fn grab_columntypes(conn: &mut PooledConn, table: &str, database: &str) -> std::result::Result<String, Box<dyn std::error::Error>> {
     let mut query = String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
     query.push_str("'");
     query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
-    let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
-    Ok(stmt)
+    
+    Ok(query)
+    //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
+    //Ok(stmt)
+}
+pub fn grab_columnnames(conn: &mut PooledConn, table: &str, database: &str, select:Vec<&str>) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    let mut query = String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    query.push_str(database);
+    query.push_str("' AND TABLE_NAME = '");
+    query.push_str(table);
+    query.push_str("'");
+    query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
+    query.push_str("And COLUMN_NAME in ( ");
+    for i in 0..select.len(){
+        query.push_str("'");
+        query.push_str(select[i]);
+        query.push_str("'");
+        if i != select.len()-1{
+            query.push_str(", ");
+        }
+        
+    }
+    query.push_str(")");
+    //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
+    Ok(query)
 }
 
 fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: &str, columntypes: Vec<String>) -> std::result::Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
@@ -58,14 +87,51 @@ fn query_table(conn: &mut PooledConn, table: &str, whereclause: &str, database: 
 pub fn build_json(queryresult:Vec<Vec<String>>, database: &str, table:&str, conn: &mut PooledConn)->Value{
 
     let columns = gettablecol::get_table_col(conn,table, database).unwrap();
+    let mut recordcount = 0;
+    if let Some(row) = queryresult.get(1) {
+        recordcount=row.len();
+        println!("recordcount: {}", recordcount);
+
+    }
+    
+    //for _i in 0..queryresult.len(){
+    //        recordcount += 1;
+    //    
+
+    //}
     //return json value from columns and queryresult
+    //
+    //j is all data in each column
     let mut jsondata = json!({});
-    for i in 0..columns.len(){
-        let mut jsonarray = json!({});
-        for j in 0..queryresult.len(){
-            jsonarray[&columns[j]] = queryresult[i][j].clone().into();
-        }
-        jsondata[&columns[i]] = jsonarray;
+    for x in 0..recordcount{
+
+    let mut jsonarray = json!({});
+    for i in 0..queryresult.len(){
+        jsonarray[&columns[i]] = queryresult[i][x].clone().into();
+    }
+    jsondata[&x.to_string()] = jsonarray;
+
+    //jsonarray[&x.to_string()] = jsonarray.clone();
+    //for i in 0..queryresult.len(){
+    //    println!("i: {}", i);
+    //    println!("queryresult[i]: {:?}", queryresult[i]);
+    //    let mut jsonarray = json!({});
+    //    //j is the iterator for each column
+    //    for j in 0..queryresult[i].len(){
+    //        println!("j: {}", j);
+    //        println!("queryresult[i][j]: {:?}", queryresult[i][j]);
+    //        jsonarray[&columns[j]] = queryresult[i][j].clone().into();
+    //    }
+    //    jsondata[&columns[i]] = jsonarray;
+    //}
     }
     jsondata
+    //for i in 0..columns.len(){
+    //    let mut jsonarray = json!({});
+    //    for j in 0..queryresult.len(){
+    //        jsonarray[&columns[j]] = queryresult[i][j].clone().into();
+    //    }
+    //    jsondata[&columns[i]] = jsonarray;
+    //}
+    //jsondata
 }

@@ -1,18 +1,18 @@
 use actix_web::{web, App,  HttpResponse, HttpServer, Responder, cookie};
 use actix_session::{SessionMiddleware, storage::RedisActorSessionStore};
-//use actix_identity::{CookieIdentityPolicy, IdentityService};
 use serde_json::Value;
 use crate::createrecord::generateform::UploadForm;
 use crate::createrecord::generateform::CreateTable;
-//use crate::createrecord::generateform::CreateRelation;
-//use futures_util::TryStreamExt as _;
-//use uuid::Uuid;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
-//use actix_multipart::Multipart;
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
 use serde::{Deserialize, Serialize};
+//use crate::createrecord::generateform::CreateRelation;
+//use actix_identity::{CookieIdentityPolicy, IdentityService};
+//use futures_util::TryStreamExt as _;
+//use uuid::Uuid;
+//use actix_multipart::Multipart;
 pub mod update;
 pub mod delete;
 pub mod insertrecords;
@@ -407,8 +407,8 @@ async fn method(form: web::Form<FormData>)->impl Responder{
         let tablename=&form.table.to_string();
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         //let types=getfields::read_types(&form.csvpath.display().to_string());
-        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string());
-        println!("{:?}",queryresult);
+        //let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string());
+        //println!("{:?}",queryresult);
 
     }
     else if form.method=="csv"{
@@ -438,12 +438,12 @@ async fn query(form: web::Form<QueryData>)->impl Responder{
         let tablename=&form.table.to_string();
         let columns=pushdata::gettablecol::get_table_col(&mut connection, &tablename, &form.database.to_string()).unwrap();
         //let types=getfields::read_types(&form.csvpath.display().to_string());
-        let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
-        println!("{:?}",queryresult);
-        let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
+        //let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
+        //println!("{:?}",queryresult);
+        //let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
     HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(html)
+        .content_type("text/json; charset=utf-8")
+        .body("Success 200: Query Executed")
 }
 async fn querytojson(info: web::Path<(String,String,String,String,String)>)->impl Responder{
 
@@ -453,13 +453,19 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
 
     let database=&info.0;
     let tablename=&info.1;
-    //let select=&info.2;
+    let select=&info.2;
     let whereclause=&info.3;
+    //select is comma separated list of columns
+    //separate select into vector
+    let selectvec: Vec<&str> = select.split(',').collect();
+    
+    for i in 0..selectvec.len(){
+        println!("{}",selectvec[i]);
+    }
+    
     //let apikey=&info.4;
 
-    let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database);
-    println!("Query result below");
-    println!("{:?}",queryresult);
+    let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database, selectvec);
     let json= querytable::build_json(queryresult, &database, &tablename, &mut connection);
 
 
