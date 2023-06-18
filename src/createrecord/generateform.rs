@@ -1,8 +1,8 @@
 // Purpose: generate form for table
-use uuid::Uuid;
-use std::io::Write;
-use futures_util::{TryStreamExt as _,};
 use actix_multipart::Multipart;
+use futures_util::TryStreamExt as _;
+use std::io::Write;
+use uuid::Uuid;
 
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{web, Error, HttpResponse};
@@ -15,7 +15,7 @@ pub struct UploadForm {
     pub table: Text<String>,
 }
 #[derive(Debug, MultipartForm)]
-pub struct CreateTable{
+pub struct CreateTable {
     #[multipart(rename = "file")]
     pub files: Vec<TempFile>,
     pub database: Text<String>,
@@ -23,15 +23,14 @@ pub struct CreateTable{
 }
 
 #[derive(Debug, MultipartForm)]
-pub struct CreateRelation{
+pub struct CreateRelation {
     #[multipart(rename = "file")]
     pub files: Vec<TempFile>,
     pub database: Text<String>,
 }
 
-
 //use file from Insert form in file_upload2
-pub fn get_create_relationship()->String{
+pub fn get_create_relationship() -> String {
     let html = r#"<html>
         <style>
     body {
@@ -84,8 +83,7 @@ input {
     html.to_string()
 }
 
-pub fn getcreaterelationshipdefined()->String{
-
+pub fn getcreaterelationshipdefined() -> String {
     let html = r#"<html>
         <style>
     body {
@@ -183,57 +181,43 @@ input {
     </html>"#;
     html.to_string()
 }
-pub fn storerelationform(
-    form: CreateRelation,
-) -> String{
+pub fn storerelationform(form: CreateRelation) -> String {
     for f in form.files {
         println!("file name: {:?}", f.file_name);
         let path = format!("tmp/relation/{}", f.file_name.clone().unwrap());
         println!("path: {:?}", path);
-        let newfile=path.clone();
+        let newfile = path.clone();
         log::info!("saving to {path}");
-        let _=f.file.persist(path);
+        let _ = f.file.persist(path);
         return newfile;
     }
     "error".to_string()
-    
 }
 
-
-
-
-pub fn uploadnewcols(
-    form: CreateTable,
-) -> String{
+pub fn uploadnewcols(form: CreateTable) -> String {
     for f in form.files {
         println!("file name: {:?}", f.file_name);
         let path = format!("tmp/data/{}", f.file_name.clone().unwrap());
         println!("path: {:?}", path);
-        let newfile=path.clone();
+        let newfile = path.clone();
         log::info!("saving to {path}");
-        let _=f.file.persist(path);
+        let _ = f.file.persist(path);
         return newfile;
     }
     "error".to_string()
-    
 }
-pub fn file_upload(
-    form: UploadForm,
-) -> String{
+pub fn file_upload(form: UploadForm) -> String {
     for f in form.files {
         let path = format!("tmp/data/{}", f.file_name.clone().unwrap());
-        let newfile=path.clone();
+        let newfile = path.clone();
         log::info!("saving to {path}");
-        let _=f.file.persist(path);
+        let _ = f.file.persist(path);
         return newfile;
     }
     "error".to_string()
-    
 }
 
-
-
-pub fn fileinsert() -> String{
+pub fn fileinsert() -> String {
     let html = r#"<html>
         <style>
     body {
@@ -281,16 +265,16 @@ input {
         </body>
     </html>"#;
     html.to_string()
-
 }
 
 use crate::NewRecord;
-pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
-
-    let mut html= String::new();
+pub fn buildform(database: &str, table: &str, columns: Vec<String>) -> String {
+    let mut html = String::new();
     html.push_str("<html><head><title>Query Results</title>");
-    html.push_str("<style>
- body{background-color: linen}</style>");
+    html.push_str(
+        "<style>
+ body{background-color: linen}</style>",
+    );
 
     html.push_str("</head><body>");
     html.push_str("<h1>");
@@ -300,7 +284,7 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
     html.push_str(table);
     html.push_str("</h1>");
     html.push_str("<form action='/create/saveform' method='post'>");
-    for i in 0..columns.len(){
+    for i in 0..columns.len() {
         //create struct with each column name
 
         html.push_str("<label for='");
@@ -315,32 +299,37 @@ pub fn buildform(database:&str, table:&str, columns: Vec<String>)->String{
         html.push_str("'><br><br>");
     }
     html.push_str("<input type='submit' value='Save'></form>");
-    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str(
+        "<form action='/main'><input type='submit' value='Return to Main Page'></form></body>",
+    );
     html
 }
 
 //take user response and generate it back to user
-pub fn formresponse(columns: NewRecord)->String{
-    let mut html= String::new();
+pub fn formresponse(columns: NewRecord) -> String {
+    let mut html = String::new();
     html.push_str("<html><head><title>Create Results</title>");
-    html.push_str("<style>
- body{background-color: linen}</style>");
+    html.push_str(
+        "<style>
+ body{background-color: linen}</style>",
+    );
 
     html.push_str("</head><body>");
     html.push_str("<h1>");
     html.push_str("Insert Into ");
     html.push_str("</h1>");
     html.push_str("<table>");
-    for i in 0..columns.records.len(){
+    for i in 0..columns.records.len() {
         html.push_str("<tr><td>");
         html.push_str(&columns.records[i]);
         html.push_str("</td></tr>");
     }
-   html.push_str("</table>");
-   html.push_str("<br><br>");
-  
+    html.push_str("</table>");
+    html.push_str("<br><br>");
 
-    html.push_str("<form action='/main'><input type='submit' value='Return to Main Page'></form></body>");
+    html.push_str(
+        "<form action='/main'><input type='submit' value='Return to Main Page'></form></body>",
+    );
     html
 }
 

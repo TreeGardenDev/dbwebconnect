@@ -3,16 +3,16 @@
 //use std::fs::File;
 //use std::io::Write;
 
-
-pub fn getpagehtml() -> String{
+pub fn getpagehtml() -> String {
     //get page html to type username, password, host, port.
     let mut html = String::new();
 
     html.push_str("<html>");
     html.push_str("<head>");
-   //add css
+    //add css
     html.push_str("<style>");
-    html.push_str("body {
+    html.push_str(
+        "body {
     background-color: lightblue;
     font-family: 'Roboto', sans-serif;
     font-weight: 300;
@@ -43,8 +43,9 @@ input {
     margin: 8px 0;
     box-sizing: border-box;
 }
-    </style>");
-    
+    </style>",
+    );
+
     html.push_str("<title>Database Connection</title>");
     html.push_str("</head>");
     html.push_str("<body>");
@@ -61,4 +62,3 @@ input {
 
     html
 }
-

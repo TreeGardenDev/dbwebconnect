@@ -1,9 +1,8 @@
 use crate::Reader;
 
-
-pub fn read_fields(file: &String) -> Vec<String>{
+pub fn read_fields(file: &String) -> Vec<String> {
     //fn read_csv() ->Vec<Data> {
-    
+
     let rdr = Reader::from_path(file);
     let mut data: Vec<String> = Vec::new();
     //let new_data: ColData = ColData::new();
@@ -12,14 +11,13 @@ pub fn read_fields(file: &String) -> Vec<String>{
         let record = result;
         data.push(record.expect("Reason").get(0).expect("Reason").to_string());
     }
-//    println!("{:?}", data);
-    return data
-
+    //    println!("{:?}", data);
+    return data;
 }
 
-pub fn read_types(file: &String) -> Vec<String>{
+pub fn read_types(file: &String) -> Vec<String> {
     //fn read_csv() ->Vec<Data> {
-    
+
     let rdr = Reader::from_path(file);
     let mut data: Vec<String> = Vec::new();
     data.push("int primary key not null auto_increment".to_string());
@@ -30,6 +28,5 @@ pub fn read_types(file: &String) -> Vec<String>{
     }
     println!("Types:");
     println!("{:?}", data);
-    return data
-
+    return data;
 }

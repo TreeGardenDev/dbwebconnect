@@ -1,25 +1,31 @@
-use mysql::prelude::*;
 use crate::Data2;
+use mysql::prelude::*;
 use mysql::*;
-pub fn get_table_col(conn: &mut PooledConn, table_name: &str, database_name: &str)
- -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-   let mut querystring:String=String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
-   querystring.push_str(database_name.to_string().as_str());
-   querystring.push_str("' AND TABLE_NAME='");
-       //testcsv' AND TABLE_NAME='");
-   querystring.push_str(table_name.to_string().as_str());
-   querystring.push_str("'");
-   querystring.push_str(" and COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
+pub fn get_table_col(
+    conn: &mut PooledConn,
+    table_name: &str,
+    database_name: &str,
+) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut querystring: String =
+        String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
+    querystring.push_str(database_name.to_string().as_str());
+    querystring.push_str("' AND TABLE_NAME='");
+    //testcsv' AND TABLE_NAME='");
+    querystring.push_str(table_name.to_string().as_str());
+    querystring.push_str("'");
+    querystring.push_str(" and COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
     //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
-    let columnname = conn.query_map(querystring, |column_name:String| column_name.to_string())?;
+    let columnname = conn.query_map(querystring, |column_name: String| column_name.to_string())?;
 
     Ok(columnname)
-
 }
 
-
-pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<Data2>, database: &str) -> String
-{
+pub fn createinsertstatement(
+    conn: &mut PooledConn,
+    table_name: &str,
+    data: Vec<Data2>,
+    database: &str,
+) -> String {
     let mut insertstatement = String::from("insert into ");
     insertstatement.push_str(database);
     insertstatement.push_str(".");
@@ -31,15 +37,15 @@ pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<D
         insertstatement.push_str(",");
     }
     insertstatement.pop();
-   insertstatement.push_str(") values (");
-    for i in 0..data.len(){
-        for j in 0..data[i].columns.len(){
+    insertstatement.push_str(") values (");
+    for i in 0..data.len() {
+        for j in 0..data[i].columns.len() {
             println!("New Column");
-            for k in 0..data[i].columns[j].len(){
+            for k in 0..data[i].columns[j].len() {
                 //println!("Data below");
                 println!("{:?}", data[i].columns[j][k]);
                 //println!("Data above");
-                let datarecord=&data[i].columns[j][k];
+                let datarecord = &data[i].columns[j][k];
                 //insert into mysql data from data variable into columns in columnname variable
                 //let insertstatement =gettablecol::createinsertstatement(&mut conn, &tablename);
                 //println!("{}", insertstatement);
@@ -50,14 +56,10 @@ pub fn createinsertstatement(conn: &mut PooledConn, table_name: &str, data:Vec<D
             }
             insertstatement.pop();
             insertstatement.push_str("),(");
-
-    }
+        }
         insertstatement.pop();
-
     }
     insertstatement.pop();
     insertstatement.push_str(";");
     insertstatement
-
-
 }
