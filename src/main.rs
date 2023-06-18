@@ -458,6 +458,8 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
     //select is comma separated list of columns
     //separate select into vector
     let selectvec: Vec<&str> = select.split(',').collect();
+    let select2=selectvec.clone();
+
     
     for i in 0..selectvec.len(){
         println!("{}",selectvec[i]);
@@ -466,7 +468,7 @@ async fn querytojson(info: web::Path<(String,String,String,String,String)>)->imp
     //let apikey=&info.4;
 
     let queryresult= querytable::query_tables(&tablename, &mut connection,&whereclause, &database, selectvec);
-    let json= querytable::build_json(queryresult, &database, &tablename, &mut connection);
+    let json= querytable::build_json(queryresult, &database, &tablename, &mut connection, select2);
 
 
 
