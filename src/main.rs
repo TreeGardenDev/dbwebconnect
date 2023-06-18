@@ -721,4 +721,26 @@ mod tests {
         let statement=delete::generate_backup(database, table);
         assert_eq!(statement.unwrap(), String::from("SELECT * INTO OUTFILE '/tmp/unit_tests_testinsertupdatedelete.csv' FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\n' FROM unit_tests.testinsertupdatedelete"));
     }
+    #[test]
+    fn test_grabcolumns(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let mut select=Vec::new();
+        select.push("col1");
+        select.push("col2");
+        select.push("col10");
+        let statement=querytable::grab_columnnames(table, database, select);
+        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'And COLUMN_NAME in ( 'col1', 'col2', 'col10')"));
+    }
+    #[test]
+    fn test_grabcolumtypes(){
+        let database="unit_tests";
+        let table="testinsertupdatedelete";
+        let mut select=Vec::new();
+        select.push("col1");
+        select.push("col2");
+        select.push("col10");
+        let statement=querytable::grab_columntypes(table, database);
+        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'"));
+    }
 }
