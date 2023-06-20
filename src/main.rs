@@ -303,18 +303,20 @@ async fn droptableweb(
 }
 async fn dbinsert(
     info: web::Path<(String, String, String)>,
-    body: web::Json<Value>,
+    body: web::Json<Vec<Value>>,
 ) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.2);
     if valid.unwrap() == true {
         let body = body.into_inner();
-        //decode json
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            data.push((key.to_string(), value.to_string()));
+        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
+        for record in body.iter(){
+            let mut data = Vec::new();
+            for (key, value) in record.as_object().unwrap().iter() {
+                data.push((key.to_string(), value.to_string()));
+            }
+            storagevec.push(data);
         }
-        println!("DATA BELOW");
-        println!("{:?}", data);
+        println!("{:?}", storagevec);
 
         let database = &info.0;
         let table = &info.1;
@@ -322,17 +324,18 @@ async fn dbinsert(
 
         let mut newtable = insertrecords::TableDef::new();
         newtable.populate(&table, &database);
-        println!("{:?}", newtable);
+        let valid = newtable.compare_fields(&storagevec);
 
-        let valid = newtable.compare_fields(&data);
         if valid {
-            let stmt = newtable.insert(&data, &table, &database);
+            let stmt = newtable.insert(&storagevec, &table, &database);
             let _ = insertrecords::exec_insert(stmt);
+            //println!("{:?}", stmt);
         } else {
             return HttpResponse::Ok()
                 .content_type("text/json; charset=utf-8")
                 .body("Invalid Data");
         }
+        
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
@@ -698,6 +701,14 @@ mod tests {
             ("col1".to_string(), "50".to_string()),
             ("col2".to_string(), "Test Addition".to_string()),
         ];
+        let data2 = vec![
+            ("col1".to_string(), "50".to_string()),
+            ("col2".to_string(), "Test Addition".to_string()),
+        ];
+        let mut body=Vec::new();
+        body.push(data);
+        body.push(data2);
+
         let mut newrecord = TableDef::new();
         //newrecord.populate(table, database);
         newrecord.table_fields.push("col1".to_string());
@@ -714,22 +725,23 @@ mod tests {
             vec!["col1".to_string(), "col2".to_string()]
         );
         println!("{:?}", newrecord);
-        let mut validvec: Vec<bool> = Vec::new();
-        for i in 0..newrecord.table_fields.len() {
-            validvec.push(false);
-            for j in 0..data.len() {
-                if newrecord.table_fields[i] == data[j].0 {
-                    validvec[i] = true;
-                }
-            }
-        }
-        for i in 0..validvec.len() {
-            assert_eq!(validvec[i], true);
-        }
-        let valid = newrecord.compare_fields(&data);
+        //let mut validvec: Vec<bool> = Vec::new();
+        //for i in 0..newrecord.table_fields.len() {
+        //    validvec.push(false);
+        //    
+        //    for j in 0..body.len() {
+        //        if newrecord.table_fields[i] == body[j].0 {
+        //            validvec[i] = true;
+        //        }
+        //    }
+        //}
+        //for i in 0..validvec.len() {
+        //    assert_eq!(validvec[i], true);
+        //}
+        let valid = newrecord.compare_fields(&body);
         assert_eq!(valid, true);
-        let insert = newrecord.insert(&data, &table, &database);
-        assert_eq!(insert, String::from("INSERT INTO unit_tests.testinsertupdatedelete (col1, col2) VALUES (50, 'Test Addition')"));
+        let insert = newrecord.insert(&body, &table, &database);
+        assert_eq!(insert, String::from("INSERT INTO unit_tests.testinsertupdatedelete (col1, col2) VALUES (50, 'Test Addition'), (50, 'Test Addition')"));
     }
     #[test]
     fn test_update_record() {
