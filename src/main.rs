@@ -1,5 +1,6 @@
 use crate::createrecord::generateform::CreateTable;
 use crate::createrecord::generateform::UploadForm;
+use crate::createrelationship::parse_json;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
 use actix_session::{storage::RedisActorSessionStore, SessionMiddleware};
 use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
@@ -303,36 +304,72 @@ async fn droptableweb(
 }
 async fn dbinsert(
     info: web::Path<(String, String, String)>,
-    body: web::Json<Value>,
+    body: web::Json<Vec<Value>>,
 ) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.2);
     if valid.unwrap() == true {
         let body = body.into_inner();
-        //decode json
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            data.push((key.to_string(), value.to_string()));
+        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
+        for record in body.iter(){
+            let mut data = Vec::new();
+            for (key, value) in record.as_object().unwrap().iter() {
+                data.push((key.to_string(), value.to_string()));
+            }
+            storagevec.push(data);
         }
-        println!("DATA BELOW");
-        println!("{:?}", data);
+        println!("{:?}", storagevec);
+        //insert innerbody into vector
+        //decode json
+        //let mut data = Vec::new();
+        ////handle multiple records
+        //for (key, value) in innerbody.iter() {
+        //    let parsed =createrelationship::parse_json(value.to_string());
+        //    println!("{:?}", parsed);
+        //    data.push((key.to_string(), parsed));
+        //    }
+        //    for (key, value) in body.as_object().unwrap().iter() {
+        //    data.push((key.to_string(), value.to_string()));
+        //    }
+        //println!("{}", data.len());
+        
+
+        //decode json
+        //handle multiple records
+        //    let parsed =createrelationship::parse_json(value.to_string());
+        //    println!("{:?}", parsed);
+        //    data.push((key.to_string(), parsed));
+        //}
+        //for (key, value) in body.as_object().unwrap().iter() {
+        
+       // println!("{:?}", data);
 
         let database = &info.0;
         let table = &info.1;
         //let apikey=&info.2;
 
-        let mut newtable = insertrecords::TableDef::new();
-        newtable.populate(&table, &database);
-        println!("{:?}", newtable);
 
-        let valid = newtable.compare_fields(&data);
-        if valid {
-            let stmt = newtable.insert(&data, &table, &database);
-            let _ = insertrecords::exec_insert(stmt);
-        } else {
-            return HttpResponse::Ok()
-                .content_type("text/json; charset=utf-8")
-                .body("Invalid Data");
+        for record in 0..storagevec.len(){
+            let mut newtable = insertrecords::TableDef::new();
+            newtable.populate(&table, &database);
+            let valid = newtable.compare_fields(&storagevec[record]);
+            if valid {
+                let stmt = newtable.insert(&storagevec[record], &table, &database);
+                let _ = insertrecords::exec_insert(stmt);
+            } else {
+                return HttpResponse::Ok()
+                    .content_type("text/json; charset=utf-8")
+                    .body("Invalid Data");
+            }
         }
+        //let valid = newtable.compare_fields(&data);
+        //if valid {
+        //    let stmt = newtable.insert(&data, &table, &database);
+        //    let _ = insertrecords::exec_insert(stmt);
+        //} else {
+        //    return HttpResponse::Ok()
+        //        .content_type("text/json; charset=utf-8")
+        //        .body("Invalid Data");
+        //}
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")

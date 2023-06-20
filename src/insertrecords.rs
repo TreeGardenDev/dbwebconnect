@@ -36,22 +36,25 @@ impl TableDef {
     }
     pub fn compare_fields(&mut self, date: &Vec<(String, String)>) -> bool {
         let mut matched: Vec<bool> = Vec::new();
-        if self.table_fields.len() != date.len() {
-            return false;
-        }
-        for i in 0..date.len() {
-            matched.push(false);
-            for j in 0..self.table_fields.len() {
-                if self.table_fields[j] == date[i].0 {
-                    matched[i] = true;
+        //for date in data.iter(){ 
+            if self.table_fields.len() != date.len() {
+                return false;
+            }
+            for i in 0..date.len() {
+                matched.push(false);
+                for j in 0..self.table_fields.len() {
+                    if self.table_fields[j] == date[i].0 {
+                        matched[i] = true;
+                    }
                 }
             }
-        }
+        
         for i in 0..matched.len() {
             if matched[i] == false {
                 return false;
             }
         }
+
         true
     }
     pub fn insert(self, data: &Vec<(String, String)>, table: &str, database: &str) -> String {
