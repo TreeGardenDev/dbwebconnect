@@ -34,9 +34,11 @@ impl TableDef {
         self.table_fields = fields;
         self.table_types = types;
     }
-    pub fn compare_fields(&mut self, date: &Vec<(String, String)>) -> bool {
-        let mut matched: Vec<bool> = Vec::new();
-        //for date in data.iter(){ 
+    pub fn compare_fields(&mut self, data: &Vec<Vec<(String, String)>>) -> bool {
+        //default to false
+
+        for date in data.iter(){ 
+            let mut matched: Vec<bool> = Vec::new();
             if self.table_fields.len() != date.len() {
                 return false;
             }
@@ -47,61 +49,75 @@ impl TableDef {
                         matched[i] = true;
                     }
                 }
+
             }
-        
         for i in 0..matched.len() {
             if matched[i] == false {
                 return false;
             }
+
+        } 
+        println!("{:?}", matched);
         }
 
         true
     }
-    pub fn insert(self, data: &Vec<(String, String)>, table: &str, database: &str) -> String {
+    pub fn insert(self, date: &Vec<Vec<(String, String)>>, table: &str, database: &str) -> String {
         let mut stmt = String::from("INSERT INTO ");
         stmt.push_str(database);
         stmt.push_str(".");
         stmt.push_str(table);
         stmt.push_str(" (");
-        for i in 0..data.len() {
-            stmt.push_str(&data[i].0);
-            if i != data.len() - 1 {
-                stmt.push_str(", ");
+        let data1 = &date[0];
+            for i in 0..data1.len(){
+                stmt.push_str(&data1[i].0);
+                if i != data1.len() - 1 {
+                    stmt.push_str(", ");
+                }
             }
+            stmt.push_str(") VALUES (");
+        for data in date.iter(){
+            for i in 0..data.len() {
+                let valuedata = data[i].1.replace("\"", "");
+
+                let typestring = &self.compare_types(&data[i].0, &self.table_fields, &self.table_types);
+
+                match typestring.as_str() {
+                    "int(11)" => {
+                        stmt.push_str(&valuedata);
+                    }
+                    "varchar(255)" => {
+                        stmt.push_str("'");
+                        stmt.push_str(&valuedata);
+                        stmt.push_str("'");
+                    }
+                    "int(100)" => {
+                        stmt.push_str(&valuedata);
+                    }
+                    "varchar(100)" => {
+                        stmt.push_str("'");
+                        stmt.push_str(&valuedata);
+                        stmt.push_str("'");
+                    }
+                    _ => {
+                        stmt.push_str("NULL");
+                    }
+                }
+
+                if i != data.len() - 1 {
+                    stmt.push_str(", ");
+                }
+            }
+            //if data != &date[date.len() - 1] {
+                stmt.push_str("), (");
+            //}
+            
+            
         }
-        stmt.push_str(") VALUES (");
-        for i in 0..data.len() {
-            let valuedata = data[i].1.replace("\"", "");
-
-            let typestring = &self.compare_types(&data[i].0, &self.table_fields, &self.table_types);
-
-            match typestring.as_str() {
-                "int(11)" => {
-                    stmt.push_str(&valuedata);
-                }
-                "varchar(255)" => {
-                    stmt.push_str("'");
-                    stmt.push_str(&valuedata);
-                    stmt.push_str("'");
-                }
-                "int(100)" => {
-                    stmt.push_str(&valuedata);
-                }
-                "varchar(100)" => {
-                    stmt.push_str("'");
-                    stmt.push_str(&valuedata);
-                    stmt.push_str("'");
-                }
-                _ => {
-                    stmt.push_str("NULL");
-                }
-            }
-
-            if i != data.len() - 1 {
-                stmt.push_str(", ");
-            }
-        }
-        stmt.push_str(")");
+        //stmt.push_str(")");
+        stmt.pop();
+        stmt.pop();
+        stmt.pop();
         stmt
     }
     fn compare_types(&self, column: &str, fields: &Vec<String>, types: &Vec<String>) -> String {
