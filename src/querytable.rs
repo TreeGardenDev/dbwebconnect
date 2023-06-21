@@ -134,3 +134,18 @@ pub fn build_json(
     }
     jsondata
 }
+pub fn query_table_schema(
+    columns: Vec<String>,
+    types: Vec<String>,
+
+)-> Value {
+    let mut jsondata = json!({});
+    for x in 0..columns.len() {
+        let mut jsonarray = json!({});
+        jsonarray["column_name"] = columns[x].clone().into();
+        jsonarray["column_type"] = types[x].clone().into();
+        jsondata[&x.to_string()] = jsonarray;
+    }
+    jsondata
+
+}

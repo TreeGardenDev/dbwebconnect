@@ -72,6 +72,10 @@ async fn main() {
                 "/query/{database}&table={table}&select={select}&where={where}&apikey={api}",
                 web::get().to(querytojson),
             )
+            .route(
+                "/querytableschema/{database}&table={table}&apikey={api}",
+                web::get().to(querytableschema),
+            )
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -510,6 +514,38 @@ async fn querytojson(info: web::Path<(String, String, String, String, String)>) 
         );
         let json =
             querytable::build_json(queryresult, &database, &tablename, &mut connection, select2);
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body(json.to_string())
+    } else {
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid API Key")
+    }
+}
+async fn querytableschema(body: web::Path<(String,String,String)>)->impl Responder{
+    let valid = connkey::search_apikey(&body.0, &body.2);
+    if valid.unwrap() == true {
+        let mut connection = dbconnect::internalqueryconn();
+
+        let database = &body.0;
+        let tablename = &body.1;
+        let mut select=Vec::new();
+        select.push("*");
+        let columnnamestmt=querytable::grab_columnnames(tablename, database, select);
+        let column=querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
+        let columntypestmt=querytable::grab_columntypes(tablename, database);
+        let columntype=querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+
+
+        let json=querytable::query_table_schema(column.unwrap(), columntype.unwrap());
+        //let queryresult = querytable::query_table_schema(
+        //    &database,
+        //    &tablename,
+        //);
+        //let json =
+        //    querytable::build_jsonschema(queryresult, &database, &tablename, &mut connection);
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
