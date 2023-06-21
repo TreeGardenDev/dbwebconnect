@@ -76,6 +76,10 @@ async fn main() {
                 "/querytableschema/{database}&table={table}&apikey={api}",
                 web::get().to(querytableschema),
             )
+            .route(
+                "/querydatabase/{database}&expand={expand}&apikey={api}",
+                web::get().to(querydatabase),
+            )
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -533,13 +537,15 @@ async fn querytableschema(body: web::Path<(String,String,String)>)->impl Respond
         let tablename = &body.1;
         let mut select=Vec::new();
         select.push("*");
-        let columnnamestmt=querytable::grab_columnnames(tablename, database, select);
+        let columnnamestmt=querytable::grab_columnnames_schema(tablename, database);
         let column=querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
-        let columntypestmt=querytable::grab_columntypes(tablename, database);
+        let columntypestmt=querytable::grab_columntypes_schema(tablename, database);
         let columntype=querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+        let constraintstmt=querytable::query_constraints(tablename, database);
+        let constraint=querytable::exec_map_tuple(&mut connection, &constraintstmt.unwrap());
 
 
-        let json=querytable::query_table_schema(column.unwrap(), columntype.unwrap());
+        let json=querytable::query_table_schema(column.unwrap(), columntype.unwrap(), constraint.unwrap());
         //let queryresult = querytable::query_table_schema(
         //    &database,
         //    &tablename,
@@ -551,6 +557,59 @@ async fn querytableschema(body: web::Path<(String,String,String)>)->impl Respond
             .content_type("text/json; charset=utf-8")
             .body(json.to_string())
     } else {
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid API Key")
+    }
+}
+async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
+    let valid = connkey::search_apikey_admin(&body.2);
+    if valid.unwrap() == true {
+        let mut connection = dbconnect::internalqueryconn();
+
+        let database = &body.0;
+        //expand will be true or false
+        let expand = &body.1;
+        //turn into bool
+        let expandbool: bool = expand.parse().unwrap();
+
+        let mut json=serde_json::json!({});
+        if expandbool==false{
+
+        
+            let mut select=Vec::new();
+            select.push("*");
+            let tablestmt=querytable::grab_tablenames(database);
+            let tables=querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
+            json=querytable::json_table_names(tables.unwrap(), database);
+        }
+        else{
+            let mut select=Vec::new();
+            select.push("*");
+            let tablestmt=querytable::grab_tablenames(database);
+            let tablesresult=querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
+            let tables=tablesresult.unwrap();
+            let mut storage:Vec<(&str,Vec<String>, Vec<String>, Vec<(String,String)>)>=Vec::new();
+            for i in 0..tables.len(){
+                let columnnamestmt=querytable::grab_columnnames_schema(&tables[i], database);
+                let column=querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
+                let columntypestmt=querytable::grab_columntypes_schema(&tables[i], database);
+                let columntype=querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+                let constraintsstmt=querytable::query_constraints(&tables[i], database);
+                let constraints=querytable::exec_map_tuple(&mut connection, &constraintsstmt.unwrap());
+
+                
+                storage.push((&tables[i], column.unwrap(), columntype.unwrap(), constraints.unwrap()));
+            }
+            println!("Storage: {:?}", storage);
+            json=querytable::query_database_schema(storage, database);
+
+        }
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body(json.to_string())
+    }
+    else{
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body("Invalid API Key")
