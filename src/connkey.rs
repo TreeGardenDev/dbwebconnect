@@ -4,7 +4,9 @@
 //3. if apikey found run request
 //4. if apikey not found return error
 
+use data_encoding::HEXUPPER;
 use mysql::prelude::Queryable;
+use ring::digest::{Context, SHA256};
 
 use crate::dbconnect;
 pub struct ApiKey {
@@ -20,15 +22,14 @@ impl ApiKey {
 
     }
     pub fn populatekey(&mut self, database: String) {
+        let salt=std::env::args().nth(3).expect("no salt provided");
         let mut apikey=String::new();
-        
-        //want to generate a random number with 19 digits
-        for _ in 0.. 19{
-            //set rng to random number between 0 and 9
-            let rng:u8 = rand::random::<u8>() % 10;
+        let mut ctx = Context::new(&SHA256);
+        ctx.update(database.as_bytes());
+        ctx.update(salt.as_bytes());
+        let digest = ctx.finish();
+        apikey.push_str(&HEXUPPER.encode(digest.as_ref()));
 
-            apikey.push_str(&rng.to_string());
-        }
         self.apikey = apikey;
         self.database = database;
     }
@@ -82,15 +83,15 @@ pub fn insert_apikey(database: String, hash:String) -> Result<(), Box<dyn std::e
     let mut apikey=ApiKey::new();
     apikey.populatekey(database);
     let mut stmt=String::from("INSERT INTO apikeys (apikey,databaseuser, databasepasshash) VALUES (");
+    stmt.push_str("'");
     stmt.push_str(&apikey.apikey);
-    stmt.push_str(", '");
+    stmt.push_str("', '");
     stmt.push_str(&apikey.database);
     stmt.push_str("', '");
     stmt.push_str(&hash);
 
     stmt.push_str("')");
 
-    println!("{}",stmt);
     conn.query_drop(stmt)?;
 
     Ok(())

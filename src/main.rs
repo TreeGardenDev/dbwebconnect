@@ -356,22 +356,29 @@ async fn dbinsert(
 }
 async fn dbupdaterecord(
     info: web::Path<(String, String, String)>,
-    body: web::Json<Value>,
+    body: web::Json<Vec<Value>>,
 ) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.2);
     if valid.unwrap() == true {
-        let conn = dbconnect::internalqueryconnapikey();
+        let mut conn = dbconnect::internalqueryconnapikey();
         let body = body.into_inner();
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            //strip out quotes
-            let value = value.to_string().replace("\"", "");
-            data.push((key.to_string(), value.to_string()));
+        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
+        //let mut data = Vec::new();
+        for record in body.iter(){
+            let mut data = Vec::new();
+            for (key, value) in record.as_object().unwrap().iter() {
+                let strkey=key.as_str();
+                let strvalue=value.as_str().unwrap();
+                data.push((strkey.to_string(), strvalue.to_string()));
+            }
+            storagevec.push(data);
         }
         let database = &info.0;
         let table = &info.1;
-        let statement = update::updaterecord(database, table, data);
-        let _ = update::executeupdaterecord(conn, &statement);
+        let statement = update::updaterecord(database, table, storagevec);
+        for statement in statement.iter(){
+            let _ = update::executeupdaterecord(&mut conn, &statement);
+        }
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")

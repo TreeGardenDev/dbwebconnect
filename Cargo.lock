@@ -1304,6 +1304,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2e66c9d817f1720209181c316d28635c050fa304f9c79e47a520882661b7308"
+
+[[package]]
 name = "dbwebconnect"
 version = "0.1.0"
 dependencies = [
@@ -1313,11 +1319,13 @@ dependencies = [
  "actix-web 4.3.1",
  "clap",
  "csv",
+ "data-encoding",
  "futures-util",
  "log",
  "mysql",
  "mysql_common",
  "rand 0.8.5",
+ "ring",
  "sanitize-filename",
  "serde",
  "serde_json",

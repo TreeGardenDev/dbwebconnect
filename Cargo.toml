@@ -21,3 +21,5 @@ uuid = { version = "1", features = ["v4"] }
 futures-util = "0.3.28"
 log = "0.4.17"
 rand = "0.8.4"
+ring = "0.16.20"
+data-encoding = "2.3.0"
