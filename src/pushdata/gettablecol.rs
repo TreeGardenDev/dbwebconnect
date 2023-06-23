@@ -14,6 +14,10 @@ pub fn get_table_col(
     querystring.push_str(table_name.to_string().as_str());
     querystring.push_str("'");
     querystring.push_str(" and COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
+    querystring.push_str(" and COLUMN_NAME != 'GPS_ID'");
+    querystring.push_str(" and COLUMN_NAME != 'X_COORD'");
+    querystring.push_str(" and COLUMN_NAME != 'Y_COORD'");
+    querystring.push_str(" and COLUMN_NAME != 'Attachment'");
     //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
     let columnname = conn.query_map(querystring, |column_name: String| column_name.to_string())?;
 

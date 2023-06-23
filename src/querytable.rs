@@ -48,6 +48,10 @@ pub fn grab_columntypes(
     query.push_str(table);
     query.push_str("'");
     query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
+    query.push_str("And COLUMN_NAME != 'GPS_ID'");
+    query.push_str("And COLUMN_NAME != 'X_COORD'");
+    query.push_str("And COLUMN_NAME != 'Y_COORD'");
+    query.push_str("And COLUMN_NAME != 'Attachment'");
 
     Ok(query)
     //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
@@ -80,6 +84,10 @@ pub fn grab_columnnames(
     query.push_str(table);
     query.push_str("'");
     query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
+    query.push_str("And COLUMN_NAME != 'GPS_ID'");
+    query.push_str("And COLUMN_NAME != 'X_COORD'");
+    query.push_str("And COLUMN_NAME != 'Y_COORD'");
+    query.push_str("And COLUMN_NAME != 'Attachment'");
     if select[0]!="*"{
         query.push_str("And COLUMN_NAME in ( ");
         for i in 0..select.len() {

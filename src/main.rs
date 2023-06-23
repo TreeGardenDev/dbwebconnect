@@ -55,7 +55,7 @@ async fn main() {
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route(
-                "/createtable/{database}&table={table}&apikey={apikey}",
+                "/createtable/{database}&table={table}&gps={gps}&apikey={apikey}",
                 web::post().to(createtableweb),
             )
             .route(
@@ -243,10 +243,12 @@ async fn deleterecord(
     }
 }
 async fn createtableweb(
-    info: web::Path<(String, String, String)>,
+    info: web::Path<(String, String,String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
+    println!("{:?}", &info.3);
+    println!("{:?}", &info.0);
+    let valid = connkey::search_apikey(&info.0, &info.3);
     if valid.unwrap() == true {
         let mut conn = dbconnect::internalqueryconnapikey();
         let body = body.into_inner();
@@ -257,14 +259,36 @@ async fn createtableweb(
         println!("{:?}", data);
         let database = &info.0;
         let table = &info.1;
+        let gps=&info.2;
+        //convert gps to bool
+        let gps=gps.parse::<bool>().unwrap();
+
         let parsed_json = tablecreate::parse_json(data);
-        let _ = tablecreate::create_table_web(
-            &mut conn,
-            &database,
-            &table,
-            &parsed_json.0,
-            &parsed_json.1,
-        );
+        if gps==true{
+            let _ = tablecreate::create_table_web_gps(
+                &mut conn,
+                &database,
+                &table,
+                &parsed_json.0,
+                &parsed_json.1,
+            );
+        }else{
+            let _ = tablecreate::create_table_web(
+                &mut conn,
+                &database,
+                &table,
+                &parsed_json.0,
+                &parsed_json.1,
+            );
+        }
+
+        //let _ = tablecreate::create_table_web(
+        //    &mut conn,
+        //    &database,
+        //    &table,
+        //    &parsed_json.0,
+        //    &parsed_json.1,
+        //);
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
@@ -354,6 +378,51 @@ async fn dbinsert(
             .body("Invalid API Key")
     }
 }
+//async fn dbinsert_gps(
+//    info: web::Path<(String, String, String)>,
+//    body: web::Json<Vec<Value>>,
+//) -> impl Responder {
+//    let valid = connkey::search_apikey(&info.0, &info.2);
+//    if valid.unwrap() == true {
+//        let body = body.into_inner();
+//        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
+//        for record in body.iter(){
+//            let mut data = Vec::new();
+//            for (key, value) in record.as_object().unwrap().iter() {
+//                data.push((key.to_string(), value.to_string()));
+//            }
+//            storagevec.push(data);
+//        }
+//        println!("{:?}", storagevec);
+//
+//        let database = &info.0;
+//        let table = &info.1;
+//        //let apikey=&info.2;
+//
+//        let mut newtable = insertrecords::TableDef::new();
+//        newtable.populate(&table, &database);
+//        let valid = newtable.compare_fields(&storagevec);
+//
+//        if valid {
+//            let stmt = newtable.insert_gps(&storagevec, &table, &database);
+//            let _ = insertrecords::exec_insert(stmt);
+//            //println!("{:?}", stmt);
+//        } else {
+//            return HttpResponse::Ok()
+//                .content_type("text/json; charset=utf-8")
+//                .body("Invalid Data");
+//        }
+//        
+//
+//        HttpResponse::Ok()
+//            .content_type("text/json; charset=utf-8")
+//            .body("Insert Successful")
+//    } else {
+//        HttpResponse::Ok()
+//            .content_type("text/json; charset=utf-8")
+//            .body("Invalid API Key")
+//    }
+//}
 async fn dbupdaterecord(
     info: web::Path<(String, String, String)>,
     body: web::Json<Vec<Value>>,
@@ -849,14 +918,16 @@ mod tests {
     fn test_update_record() {
         let database = "unit_tests";
         let table = "testinsertupdatedelete";
+        let mut datastore=Vec::new();
         let mut data: Vec<(String, String)> = Vec::new();
         data.push(("INTERNAL_PRIMARY_KEY".to_string(), "1".to_string()));
         data.push(("col1".to_string(), "50".to_string()));
         data.push(("col2".to_string(), "Changed".to_string()));
+        datastore.push(data);
 
-        let update = update::updaterecord(database, table, data);
+        let update = update::updaterecord(database, table, datastore);
         //assert_eq!(update.unwrap(), String::from("Success"));
-        assert_eq!(update, String::from("UPDATE unit_tests.testinsertupdatedelete SET col1= \"50\", col2= \"Changed\" WHERE INTERNAL_PRIMARY_KEY=1"));
+        assert_eq!(update[0], String::from("UPDATE unit_tests.testinsertupdatedelete SET col1= \"50\", col2= \"Changed\" WHERE INTERNAL_PRIMARY_KEY=1"));
     }
     #[test]
     fn test_delete_record() {
@@ -894,7 +965,7 @@ mod tests {
         select.push("col2");
         select.push("col10");
         let statement = querytable::grab_columnnames(table, database, select);
-        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'And COLUMN_NAME in ( 'col1', 'col2', 'col10')"));
+        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'And COLUMN_NAME != 'GPS_ID'And COLUMN_NAME != 'X_COORD'And COLUMN_NAME != 'Y_COORD'And COLUMN_NAME != 'Attachment'And COLUMN_NAME in ( 'col1', 'col2', 'col10')"));
     }
     #[test]
     fn test_grabcolumtypes() {
@@ -905,6 +976,6 @@ mod tests {
         select.push("col2");
         select.push("col10");
         let statement = querytable::grab_columntypes(table, database);
-        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'"));
+        assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'And COLUMN_NAME != 'GPS_ID'And COLUMN_NAME != 'X_COORD'And COLUMN_NAME != 'Y_COORD'And COLUMN_NAME != 'Attachment'"));
     }
 }
