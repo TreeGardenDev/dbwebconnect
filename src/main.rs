@@ -1,4 +1,5 @@
 use crate::createrecord::generateform::CreateTable;
+use crate::relationships::Relationship_Builder;
 use crate::createrecord::generateform::UploadForm;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
 use actix_session::{storage::RedisActorSessionStore, SessionMiddleware};
@@ -26,6 +27,7 @@ pub mod pushdata;
 pub mod querytable;
 pub mod tablecreate;
 pub mod update;
+pub mod relationships;
 
 #[actix_web::main]
 async fn main() {
@@ -102,6 +104,10 @@ async fn main() {
             .route(
                 "/relationship/{database}&apikey={api}",
                 web::post().to(createrelationshipweb),
+            )
+            .route(
+                "relateparent/{database}&parent_table={parent_table}&child_table={child_table}&relationship_name={relationship_name}&apikey={api}",
+                web::post().to(createrelationshipparentweb),
             )
             .route(
                 "/deleterecord/{database}&table={table}&apikey={api}",
@@ -205,6 +211,41 @@ async fn createrelationshipweb(
         }
         let relationship = createrelationship::createrelationshipfromweb(&info.0, data);
         let _ = createrelationship::commitrelationshipfromweb(relationship);
+
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 200 Relationship Created")
+    } else {
+        HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+    }
+}
+async fn createrelationshipparentweb(
+    info: web::Path<(String, String,String,String,String)>,
+    body: web::Json<Value>,
+) -> impl Responder {
+
+    let valid = connkey::search_apikey(&info.0, &info.4);
+    if valid.unwrap() == true {
+        let body = body.into_inner();
+        let mut conn= dbconnect::internalqueryconn();
+        let mut data = Vec::new();
+        for (key, value) in body.as_object().unwrap().iter() {
+            let parsed = createrelationship::parse_json(value.to_string());
+            println!("{:?}", parsed);
+            data.push((key.to_string(), parsed));
+        }
+
+        let related=relationships::Relationship_Builder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
+
+
+        let stmt=relationships::create_relationship_stmt(&related);
+        
+        println!("{:?}",stmt);
+        let _=relationships::execute_relationship_stmt(&stmt, &mut conn);
+
+
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
