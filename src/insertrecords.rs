@@ -28,8 +28,10 @@ impl TableDef {
         let mut conn = dbconnect::internalqueryconn();
 
         let typesstmt = querytable::grab_columntypes(table_name, database).unwrap();
+        println!("{}", typesstmt);
         let types = querytable::exec_map(&mut conn, &typesstmt).unwrap();
         let fields = gettablecol::get_table_col(&mut conn, table_name, database).unwrap();
+        println!("Fields: {:?}", fields);
         self.table_name = String::from(table_name);
         self.table_fields = fields;
         self.table_types = types;

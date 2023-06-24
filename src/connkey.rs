@@ -36,8 +36,10 @@ impl ApiKey {
 }
 
 pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::error::Error>>{
+    println!("database: {}", database);
+    println!("apikey: {}", apikey);
     let mut conn=dbconnect::internalqueryconnapikey();
-    let mut stmt=String::from("SELECT apikey FROM apikeys WHERE databaseuser= '");
+    let mut stmt=String::from("SELECT apikey FROM ApiKey.apikeys WHERE databaseuser= '");
     stmt.push_str(&database);
     stmt.push_str("'");
 
@@ -47,6 +49,7 @@ pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::
     let _ = conn.query_map(stmt, |apikey| {
         keyvec.push(apikey);
     })?;
+    println!("{:?}", keyvec);
 
     
 
