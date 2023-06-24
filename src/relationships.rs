@@ -28,6 +28,18 @@ impl Relationship_Builder{
         };
         relationship
     }
+    pub fn check_relationship_name(&self, conn: &mut PooledConn)->bool{
+        let stmt = format!("SELECT relationship FROM Relationships.relationships WHERE relationship='{}'", self.relationship_name);
+        let result:Vec<String> = conn.query_map(stmt, |relationship| relationship).unwrap();
+        if result.len() > 0{
+            println!("Relationship Name Already Exists");
+            return false;
+        }
+        else{
+            println!("Relationship Name Does Not Exist");
+            return true;
+        }
+    }
         
     
 }

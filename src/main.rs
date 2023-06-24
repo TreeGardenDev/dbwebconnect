@@ -227,34 +227,35 @@ async fn createrelationshipparentweb(
 ) -> impl Responder {
 
     let valid = connkey::search_apikey(&info.0, &info.4);
-    if valid.unwrap() == true {
-        let body = body.into_inner();
-        let mut conn= dbconnect::internalqueryconn();
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            let parsed = createrelationship::parse_json(value.to_string());
-            println!("{:?}", parsed);
-            data.push((key.to_string(), parsed));
-        }
-
-        let related=relationships::Relationship_Builder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
-
-
-        let stmt=relationships::create_relationship_stmt(&related);
-        
-        println!("{:?}",stmt);
-        let _=relationships::execute_relationship_stmt(&stmt, &mut conn);
-
-
-
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Status: 200 Relationship Created")
-    } else {
-        HttpResponse::Ok()
+    if valid.unwrap() == false{
+        return HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body("Status: 400 Invalid API Key")
     }
+    let body = body.into_inner();
+    let mut conn= dbconnect::internalqueryconn();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        let parsed = createrelationship::parse_json(value.to_string());
+        println!("{:?}", parsed);
+        data.push((key.to_string(), parsed));
+    }
+
+    let related=relationships::Relationship_Builder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
+    let valid=related.check_relationship_name(&mut conn);
+    if valid==false{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 400 Relationship Name Already Exists")
+    }
+
+    let stmt=relationships::create_relationship_stmt(&related);
+    
+    let _=relationships::execute_relationship_stmt(&stmt, &mut conn);
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Relationship Created")
 }
 async fn deleterecord(
     info: web::Path<(String, String, String)>,
