@@ -1,6 +1,10 @@
 use mysql::prelude::*;
 use mysql::*;
 //read from csv file to create table in mariadb with given column names
+
+pub fn exec_statement(conn: &mut PooledConn, statement: &str) {
+    conn.query_drop(statement).unwrap();
+}
 pub fn create_table(conn: &mut PooledConn,database:&str, table_name: &str, column_names: &Vec<String>, column_types: &Vec<String> ){
     let mut query = String::from("CREATE TABLE ");
     query.push_str(database);
@@ -20,7 +24,7 @@ pub fn create_table(conn: &mut PooledConn,database:&str, table_name: &str, colum
     println!("{}", query);
     conn.query_drop(query).unwrap();
 }
-pub fn create_table_web(conn: &mut PooledConn, database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> ){
+pub fn create_table_web(database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> )->String{
     let mut query = String::from("CREATE TABLE ");
     query.push_str(database);
     query.push_str(".");
@@ -28,6 +32,13 @@ pub fn create_table_web(conn: &mut PooledConn, database:&str,table_name: &str, c
     query.push_str(" (");
     query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
     for i in 0..column_names.len() {
+        let valid=validate_unprotected_term(column_names[i].0.as_str());
+        if valid.0==false{
+            println!("Invalid column name: {}",column_names[i].0);
+            let mut error=String::from("Invalid column name: ");
+            error.push_str(column_names[i].0.as_str());
+            return error;
+        }
         query.push_str(column_names[i].1.as_str());
         query.push_str(" ");
         query.push_str(column_types[i].1.as_str());
@@ -37,10 +48,10 @@ pub fn create_table_web(conn: &mut PooledConn, database:&str,table_name: &str, c
     query.pop();
     query.push_str(")");
     println!("{}", query);
-    conn.query_drop(query).unwrap();
+    query
 }
 
-pub fn create_table_web_gps(conn: &mut PooledConn, database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> ){
+pub fn create_table_web_gps(database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> )->String{
     let mut query = String::from("CREATE TABLE ");
     query.push_str(database);
     query.push_str(".");
@@ -52,6 +63,13 @@ pub fn create_table_web_gps(conn: &mut PooledConn, database:&str,table_name: &st
     query.push_str("Y_COORD VARCHAR(100), ");
     query.push_str("Attachment VARCHAR(100), ");
     for i in 0..column_names.len() {
+        let valid=validate_unprotected_term(column_names[i].1.as_str());
+        if valid.0==false{
+            println!("Invalid column name: {}",valid.1);
+            let mut error=String::from("Invalid column name: ");
+            error.push_str(column_names[i].1.as_str());
+            return error;
+        }
         query.push_str(column_names[i].1.as_str());
         query.push_str(" ");
         query.push_str(column_types[i].1.as_str());
@@ -61,7 +79,7 @@ pub fn create_table_web_gps(conn: &mut PooledConn, database:&str,table_name: &st
     query.pop();
     query.push_str(")");
     println!("{}", query);
-    conn.query_drop(query).unwrap();
+    query
 }
 pub fn parse_json(json: Vec<(String, String)>)-> (Vec<(String,String)>, Vec<(String,String)>){
     let mut columnstr=json[0].1.clone();
@@ -108,3 +126,35 @@ pub fn parse_json(json: Vec<(String, String)>)-> (Vec<(String,String)>, Vec<(Str
 
 }
 
+pub fn validate_unprotected_term(column:&str)->(bool,&str){
+
+    //glet protected=["PRIMARY_KEY","INTERNAL_PRIMARY_KEY","GPS_ID","X_COORD","Y_COORD","Attachment"];
+    //include list of sql reserved words
+    //include list of sql data types
+    let reserved=["ADD","ALL","ALTER","ANALYZE","AND","AS","ASC","ASENSITIVE","BEFORE","BETWEEN","BIGINT","BINARY","BLOB","BOTH","BY","CALL","CASCADE","CASE","CHANGE","CHAR","CHARACTER","CHECK","COLLATE","COLUMN","CONDITION","CONSTRAINT","CONTINUE","CONVERT","CREATE","CROSS","CURRENT_DATE","CURRENT_TIME","CURRENT_TIMESTAMP","CURRENT_USER","CURSOR","DATABASE","DATABASES","DAY_HOUR","DAY_MICROSECOND","DAY_MINUTE","DAY_SECOND","DEC","DECIMAL","DECLARE","DEFAULT","DELAYED","DELETE","DESC","DESCRIBE","DETERMINISTIC","DISTINCT","DISTINCTROW","DIV","DOUBLE","DROP","DUAL","EACH","ELSE","ELSEIF","ENCLOSED","ESCAPED","EXISTS","EXIT","EXPLAIN","FALSE","FETCH","FLOAT","FLOAT4","FLOAT8","FOR","FORCE","FOREIGN","FROM","FULLTEXT","GOTO","GRANT","GROUP","HAVING","HIGH_PRIORITY","HOUR_MICROSECOND","HOUR_MINUTE","HOUR_SECOND","IF","IGNORE","IN","INDEX","INFILE","INNER","INOUT","INSENSITIVE","INSERT","INT","INT1","INT2","INT3","INT4","INT8","INTEGER","INTERVAL","INTO","IS","ITERATE","JOIN","KEY","KEYS","KILL","LEADING","LEAVE","LEFT","LIKE","LIMIT","LINEAR","LINES","LOAD","LOCALTIME","LOCALTIMESTAMP","LOCK","LONG","LONGBLOB","LONGTEXT","LOOP","LOW_PRIORITY","MASTER_BIND","MASTER_SSL_VERIFY_SERVER_CERT","MATCH","MAXVALUE","MEDIUMBLOB","MEDIUMINT","MEDIUMTEXT","MIDDLEINT","MINUTE_MICROSECOND","MINUTE_SECOND","MOD","MODIFIES","NATURAL","NOT","NO_WRITE_TO_BINLOG","NULL","NUMERIC","ON","OPTIMIZE","OPTION","OPTIONALLY","OR","ORDER","OUT","OUTER","OUTFILE","PRECISION","PRIMARY","PROCEDURE","PURGE","RANGE","READ","READS","READ_WRITE","REAL","REFERENCES","REGEXP","RELEASE","RENAME","REPEAT","REPLACE","REQUIRE","RESIGNAL","RESTRICT","RETURN","REVOKE","RIGHT","RLIKE","SCHEMA","SCHEMAS","SECOND_MICROSECOND","SELECT","SENSITIVE"];
+    let datatypes=["INT","VARCHAR","CHAR","TEXT","DATE","TIME","DATETIME","TIMESTAMP","FLOAT","DOUBLE","DECIMAL","BINARY","VARBINARY","TINYBLOB","BLOB","MEDIUMBLOB","LONGBLOB","TINYTEXT","TEXT","MEDIUMTEXT","LONGTEXT","ENUM","SET"];
+    let mut protected:Vec<&str>=Vec::new();
+    protected.push("PRIMARY_KEY");
+    protected.push("INTERNAL_PRIMARY_KEY");
+    protected.push("GPS_ID");
+    protected.push("X_COORD");
+    protected.push("Y_COORD");
+    protected.push("Attachment");
+    for i in 0..reserved.len(){
+        if column.to_uppercase()==reserved[i]{
+            return (false, column)
+        }
+    }
+    for i in 0..datatypes.len(){
+        if column.to_uppercase()==datatypes[i]{
+            return (false, column)
+        }
+    }
+    for i in 0..protected.len(){
+        if column.to_uppercase()==protected[i]{
+            return (false, column)
+        }
+    }
+    //
+    (true, column)
+}

@@ -27,7 +27,12 @@ pub fn exec_map(
     conn: &mut PooledConn,
     query: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    let stmt: Vec<String> = conn.query_map(query, |data| data)?;
+    //replace null with empty string
+    //let stmt: Vec<String> = conn.query_map(query, |data| data.unwrap_or("".to_string()))?;
+    let stmt: Vec<String> = conn.query_map_opt(query, |data | data.unwrap_or_default())?;
+
+    //let stmt: Vec<String> = conn.query_map(query, |data| data)?;
+    //replace null with empty string
     Ok(stmt)
 }
 pub fn exec_map_tuple(
@@ -54,8 +59,20 @@ pub fn grab_columntypes(
     query.push_str("And COLUMN_NAME != 'Attachment'");
 
     Ok(query)
-    //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
-    //Ok(stmt)
+}
+
+pub fn grab_all_columntypes(
+    table: &str,
+    database: &str,
+) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    let mut query =
+        String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    query.push_str(database);
+    query.push_str("' AND TABLE_NAME = '");
+    query.push_str(table);
+    query.push_str("'");
+
+    Ok(query)
 }
 pub fn grab_columntypes_schema(
     table: &str,
@@ -88,6 +105,32 @@ pub fn grab_columnnames(
     query.push_str("And COLUMN_NAME != 'X_COORD'");
     query.push_str("And COLUMN_NAME != 'Y_COORD'");
     query.push_str("And COLUMN_NAME != 'Attachment'");
+    if select[0]!="*"{
+        query.push_str("And COLUMN_NAME in ( ");
+        for i in 0..select.len() {
+            query.push_str("'");
+            query.push_str(select[i]);
+            query.push_str("'");
+            if i != select.len() - 1 {
+                query.push_str(", ");
+            }
+        }
+        query.push_str(")");
+    }
+    //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
+    Ok(query)
+}
+pub fn grab_all_columnames(
+    table: &str,
+    database: &str,
+    select: Vec<&str>,
+) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    let mut query =
+        String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    query.push_str(database);
+    query.push_str("' AND TABLE_NAME = '");
+    query.push_str(table);
+    query.push_str("'");
     if select[0]!="*"{
         query.push_str("And COLUMN_NAME in ( ");
         for i in 0..select.len() {

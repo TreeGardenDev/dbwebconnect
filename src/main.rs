@@ -265,21 +265,32 @@ async fn createtableweb(
 
         let parsed_json = tablecreate::parse_json(data);
         if gps==true{
-            let _ = tablecreate::create_table_web_gps(
-                &mut conn,
+            let stmt = tablecreate::create_table_web_gps(
                 &database,
                 &table,
                 &parsed_json.0,
                 &parsed_json.1,
             );
+            if stmt.starts_with("Invalid"){
+                return HttpResponse::Ok()
+                    .content_type("text/json; charset=utf-8")
+                    .body(stmt);
+            }
+            let _ = tablecreate::exec_statement(&mut conn, &stmt);
         }else{
-            let _ = tablecreate::create_table_web(
-                &mut conn,
+            let stmt = tablecreate::create_table_web(
                 &database,
                 &table,
                 &parsed_json.0,
                 &parsed_json.1,
             );
+            //check if statement says invalid as the first word
+            if stmt.starts_with("Invalid"){
+                return HttpResponse::Ok()
+                    .content_type("text/json; charset=utf-8")
+                    .body(stmt);
+            }
+            let _ = tablecreate::exec_statement(&mut conn, &stmt);
         }
 
         //let _ = tablecreate::create_table_web(
@@ -978,4 +989,53 @@ mod tests {
         let statement = querytable::grab_columntypes(table, database);
         assert_eq!(statement.unwrap(), String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'unit_tests' AND TABLE_NAME = 'testinsertupdatedelete'And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'And COLUMN_NAME != 'GPS_ID'And COLUMN_NAME != 'X_COORD'And COLUMN_NAME != 'Y_COORD'And COLUMN_NAME != 'Attachment'"));
     }
+    #[test]
+    fn test_protected_terms() {
+        let mut terms=Vec::new();
+        let term=String::from("INTERNAL_PRIMARY_KEY");
+        let term2=String::from("CONDITION");
+        let term3=String::from("INT");
+        let term4=String::from("VARCHAR");
+        let term5=String::from("CONDITION_RATING");
+
+        terms.push(term);
+        terms.push(term2);
+        terms.push(term3);
+        terms.push(term4);
+
+        for term in terms.iter(){
+            let valid=tablecreate::validate_unprotected_term(term);
+            assert_eq!(valid.0, false);
+        }
+
+        let valid=tablecreate::validate_unprotected_term(&term5);
+        assert_eq!(valid.0, true);
+
+
+        
+    }
+//    #[test]
+//    fn test_create_table() {
+//        let database = "unit_tests";
+//        let table = "testinsertupdatedelete";
+//        //use first column of tuple to get column names
+//        //use second column of tuple to get column types
+//        let body:web::Json<Value>=[("columns", "[{\"col1\":\"condition_rtg\",\"col2\":\"color\",\"col3\":\"part_number\",\"col4\":\"runtime\"}]"), ("types", "[{\"col1\":\"INT(11)\",\"col2\":\"VARCHAR(255)\",\"col3\":\"VARCHAR(255)\",\"col4\":\"INT(11)\"}]")];
+//        
+//        let body=body.into_inner();
+//
+//
+//        let mut json=Vec::new();
+//        json.push(body);
+//
+//        //
+//        let parsed=tablecreate::parse_json(body);
+//        let statement = tablecreate::create_table_web(database, table, &parsed.0, &parsed.1);
+//        assert_eq!(
+//            statement.unwrap(),
+//            String::from("CREATE TABLE unit_tests.testinsertupdatedelete (INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, condition_rtg INT(11), color VARCHAR(255), part_number VARCHAR(255), runtime INT(11))")
+//        );
+//    }
+//} 
+//
 }
