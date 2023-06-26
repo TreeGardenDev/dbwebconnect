@@ -1,5 +1,4 @@
 use crate::createrecord::generateform::CreateTable;
-use crate::relationships::Relationship_Builder;
 use crate::createrecord::generateform::UploadForm;
 use actix_multipart::form::{tempfile::TempFileConfig, MultipartForm};
 use actix_session::{storage::RedisActorSessionStore, SessionMiddleware};
@@ -7,6 +6,7 @@ use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
+use mysql::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 //use crate::createrecord::generateform::CreateRelation;
@@ -81,6 +81,10 @@ async fn main() {
             .route(
                 "/querydatabase/{database}&expand={expand}&apikey={api}",
                 web::get().to(querydatabase),
+            )
+            .route(
+                "/queryrelationship/{database}&relationship={relationship}&apikey={api}",
+                web::get().to(queryrelationship),
             )
             .service(
                 web::resource("/create")
@@ -617,6 +621,54 @@ async fn query(form: web::Form<QueryData>) -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Success 200: Query Executed")
+}
+async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Responder{
+    let valid = connkey::search_apikey(&info.0, &info.2);
+    if valid.unwrap()==false{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Err 400: Not a valid API Key")
+    }
+    let mut connection = dbconnect::internalqueryconn();
+    let database = &info.0;
+    let relationship = &info.1;
+
+    let relationshipvec: Vec<relationships::Relationship_Builder> = relationships::query_relationships(&mut connection, relationship);
+    println!("{:?}", relationshipvec);
+    let parent_table = &relationshipvec[0].parent_table;
+    let child_table = &relationshipvec[0].child_table;
+    let whereclause = &relationshipvec[0].where_clause;
+    let querystmt=querytable::query_relationship(&database, &parent_table, &child_table, &whereclause).unwrap();
+    println!("{}", querystmt);
+    let selectvec=vec!["*"];
+    let where_clause=String::from("1=1");
+    let  select2=selectvec.clone();
+    let select3=selectvec.clone();
+
+    let queryresult = querytable::query_tables(
+        &parent_table,
+        &mut connection,
+        &where_clause,
+        &database,
+        selectvec,
+    );
+    let queryresultchild=querytable::query_tables(
+        &child_table, &mut connection, &where_clause, &database, select3);
+    println!("{:?}", queryresult);
+    let mut json=querytable::build_json_withchild(queryresult, child_table, &whereclause, database, parent_table, &mut connection, select2);
+
+
+    //let queryresult = querytable::exec_relationship_query(&mut connection, &querystmt).unwrap();
+    //println!("{:?}", queryresult);
+
+    //let json = serde_json::to_string(&relationshipvec).unwrap();
+
+
+
+    
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
 }
 async fn querytojson(info: web::Path<(String, String, String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.4);

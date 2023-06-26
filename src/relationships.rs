@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use mysql::{*, prelude::Queryable};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Serialize,Debug, Clone, Deserialize)]
 pub struct Relationship_Builder{
     pub database: String,
     pub parent_table: String,
@@ -50,4 +50,14 @@ pub fn create_relationship_stmt(relationship: &Relationship_Builder) -> String{
 }
 pub fn execute_relationship_stmt(stmt: &str, conn: &mut PooledConn){
     let _=conn.query_drop(stmt);
+}
+pub fn query_relationships(conn: &mut PooledConn, relationship_name:&str)->Vec<Relationship_Builder>{
+    let mut stmt = String::from("SELECT targeted_database, parent_table, child_table, where_clause, relationship FROM Relationships.relationships");
+    stmt.push_str(" WHERE relationship='");
+    stmt.push_str(relationship_name);
+    stmt.push_str("'");
+    
+    let result:Vec<Relationship_Builder> = conn.query_map(stmt, |(targeted_database, parent_table, child_table, where_clause, relationship)| Relationship_Builder{database: targeted_database, parent_table, child_table, where_clause, relationship_name: relationship}).unwrap();
+
+    result
 }
