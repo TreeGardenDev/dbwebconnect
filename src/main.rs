@@ -9,6 +9,9 @@ use mysql::*;
 use mysql::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use data_encoding::BASE64;
+use rusoto_s3::*;
+
 //use crate::createrecord::generateform::CreateRelation;
 //use actix_identity::{CookieIdentityPolicy, IdentityService};
 //use futures_util::TryStreamExt as _;
@@ -94,6 +97,10 @@ async fn main() {
             .route(
                 "/insert/{database}&table={table}&apikey={api}",
                 web::post().to(dbinsert),
+            )
+            .route(
+                "/insertattachment/{database}&table={table}&apikey={api}",
+                web::post().to(dbinsertattachment)
             )
             .route(
                 "/updaterecord/{database}&table={table}&apikey={api}",
@@ -396,6 +403,59 @@ async fn droptableweb(
         .content_type("text/json; charset=utf-8")
         .body("Table Dropped")
 }
+//grab attachment to put in s3 bucket
+async fn dbinsertattachment(
+    info: web::Path<(String, String, String)>,
+    body: web::Json<Value>,
+
+) -> impl Responder {
+    let valid = connkey::search_apikey(&info.0, &info.2);
+    if !valid.unwrap() {
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key");
+    }
+    //decode json
+    let body = body.into_inner();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(), value.to_string()));
+    }
+   // println!("{:?}", data);
+
+
+    let mut filename = data[0].1.clone();
+    filename = filename.replace("\"", "");
+
+    println!("{:?}", filename);
+    let mut attachment = data[1].1.clone();
+    attachment = attachment.replace("\"", "");
+    println!("{:?}", attachment);
+    let encoded = BASE64.decode(attachment.as_bytes()).unwrap();
+    println!("{:?}", encoded);
+
+    //upload to s3 bucket using rust-s3
+    let bucket = "testbucket";
+    let client = rusoto_s3::S3Client::new(rusoto_core::Region::UsEast1);
+    let mut req = rusoto_s3::PutObjectRequest::default();
+    req.bucket = bucket.to_string();
+    req.key = filename.to_string();
+    req.body = Some(encoded.into());
+    let _ = client.put_object(req).await.unwrap();
+
+
+
+
+
+
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Record Inserted")
+
+}
+
+
 async fn dbinsert(
     info: web::Path<(String, String, String)>,
     body: web::Json<Vec<Value>>,
