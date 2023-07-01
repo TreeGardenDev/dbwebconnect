@@ -2,3 +2,4 @@
 *.txt
 *.lock
 /data
+Cargo.lock
