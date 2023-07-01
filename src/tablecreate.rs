@@ -51,30 +51,33 @@ pub fn create_table_web(database:&str,table_name: &str, column_names: &Vec<(Stri
     query
 }
 
-pub fn create_table_web_gps(database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> )->String{
+//pub fn create_table_web_gps(database:&str,table_name: &str, column_names: &Vec<(String,String)>, column_types: &Vec<(String, String)> )->String{
+pub fn create_table_web_gps(database:&str,table_name: &str )->String{
     let mut query = String::from("CREATE TABLE ");
     query.push_str(database);
     query.push_str(".");
     query.push_str(table_name);
+    query.push_str("_GPS");
     query.push_str(" (");
     query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
+    query.push_str("MAIN_TABLE_ID INT, ");
     query.push_str("GPS_ID INT, ");
     query.push_str("X_COORD VARCHAR(100), ");
     query.push_str("Y_COORD VARCHAR(100), ");
     query.push_str("Attachment VARCHAR(100), ");
-    for i in 0..column_names.len() {
-        let valid=validate_unprotected_term(column_names[i].1.as_str());
-        if valid.0==false{
-            println!("Invalid column name: {}",valid.1);
-            let mut error=String::from("Invalid column name: ");
-            error.push_str(column_names[i].1.as_str());
-            return error;
-        }
-        query.push_str(column_names[i].1.as_str());
-        query.push_str(" ");
-        query.push_str(column_types[i].1.as_str());
-        query.push_str(", ");
-    }
+    //for i in 0..column_names.len() {
+    //    let valid=validate_unprotected_term(column_names[i].1.as_str());
+    //    if valid.0==false{
+    //        println!("Invalid column name: {}",valid.1);
+    //        let mut error=String::from("Invalid column name: ");
+    //        error.push_str(column_names[i].1.as_str());
+    //        return error;
+    //    }
+    //    query.push_str(column_names[i].1.as_str());
+    //    query.push_str(" ");
+    //    query.push_str(column_types[i].1.as_str());
+    //    query.push_str(", ");
+    //}
     query.pop();
     query.pop();
     query.push_str(")");

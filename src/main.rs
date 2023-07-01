@@ -311,11 +311,16 @@ async fn createtableweb(
 
         let parsed_json = tablecreate::parse_json(data);
         if gps==true{
-            let stmt = tablecreate::create_table_web_gps(
+            let stmt = tablecreate::create_table_web(
                 &database,
                 &table,
                 &parsed_json.0,
                 &parsed_json.1,
+            );
+            let _ = tablecreate::exec_statement(&mut conn, &stmt);
+            let stmt = tablecreate::create_table_web_gps(
+                &database,
+                &table,
             );
             if stmt.starts_with("Invalid"){
                 return HttpResponse::Ok()
@@ -323,6 +328,7 @@ async fn createtableweb(
                     .body(stmt);
             }
             let _ = tablecreate::exec_statement(&mut conn, &stmt);
+            
         }else{
             let stmt = tablecreate::create_table_web(
                 &database,
