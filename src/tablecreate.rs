@@ -64,7 +64,7 @@ pub fn create_table_web_gps(database:&str,table_name: &str )->String{
     query.push_str("GPS_ID INT, ");
     query.push_str("X_COORD VARCHAR(100), ");
     query.push_str("Y_COORD VARCHAR(100), ");
-    query.push_str("Attachment VARCHAR(100), ");
+    query.push_str("Attachment BLOB, ");
     //for i in 0..column_names.len() {
     //    let valid=validate_unprotected_term(column_names[i].1.as_str());
     //    if valid.0==false{

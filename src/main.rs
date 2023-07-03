@@ -434,14 +434,17 @@ async fn dbinsertattachment(
     let encoded = BASE64.decode(attachment.as_bytes()).unwrap();
     println!("{:?}", encoded);
 
+    let insertstmt=insertrecords::insert_attachment(&info.0,&info.1,&filename,encoded);
+    let _=insertrecords::exec_insert(insertstmt.unwrap());
+
     //upload to s3 bucket using rust-s3
-    let bucket = "testbucket";
-    let client = rusoto_s3::S3Client::new(rusoto_core::Region::UsEast1);
-    let mut req = rusoto_s3::PutObjectRequest::default();
-    req.bucket = bucket.to_string();
-    req.key = filename.to_string();
-    req.body = Some(encoded.into());
-    let _ = client.put_object(req).await.unwrap();
+    //let bucket = "testbucket";
+    //let client = rusoto_s3::S3Client::new(rusoto_core::Region::UsEast1);
+    //let mut req = rusoto_s3::PutObjectRequest::default();
+    //req.bucket = bucket.to_string();
+    //req.key = filename.to_string();
+    //req.body = Some(encoded.into());
+    //let _ = client.put_object(req).await.unwrap();
 
 
 

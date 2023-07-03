@@ -132,6 +132,22 @@ impl TableDef {
         String::from("NULL")
     }
 }
+pub fn insert_attachment(database: &str, table:&str, filename:&str, data:Vec<u8>) -> Result<String> {
+    let mut stmt = String::from("INSERT INTO ");
+    stmt.push_str(database);
+    stmt.push_str(".");
+    stmt.push_str(table);
+    stmt.push_str("_");
+    stmt.push_str("GPS");
+    stmt.push_str(" (X_COORD, ATTACHMENT) VALUES ('");
+    stmt.push_str(filename);
+    stmt.push_str("', '");
+    stmt.push_str(data.iter().map(|x| format!("{:02X}", x)).collect::<String>().as_str());
+   // stmt.push_str(&String::from_utf8(data).unwrap());
+    stmt.push_str("')");
+    Ok(stmt)
+
+}
 pub fn exec_insert(statement: String) -> Result<String> {
     let mut conn = dbconnect::internalqueryconn();
     conn.query_drop(statement).unwrap();
