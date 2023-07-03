@@ -6,8 +6,12 @@ use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
+use mysql::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use data_encoding::BASE64;
+use rusoto_s3::*;
+
 //use crate::createrecord::generateform::CreateRelation;
 //use actix_identity::{CookieIdentityPolicy, IdentityService};
 //use futures_util::TryStreamExt as _;
@@ -26,6 +30,7 @@ pub mod pushdata;
 pub mod querytable;
 pub mod tablecreate;
 pub mod update;
+pub mod relationships;
 
 #[actix_web::main]
 async fn main() {
@@ -80,6 +85,10 @@ async fn main() {
                 "/querydatabase/{database}&expand={expand}&apikey={api}",
                 web::get().to(querydatabase),
             )
+            .route(
+                "/queryrelationship/{database}&relationship={relationship}&apikey={api}",
+                web::get().to(queryrelationship),
+            )
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -88,6 +97,10 @@ async fn main() {
             .route(
                 "/insert/{database}&table={table}&apikey={api}",
                 web::post().to(dbinsert),
+            )
+            .route(
+                "/insertattachment/{database}&table={table}&apikey={api}",
+                web::post().to(dbinsertattachment)
             )
             .route(
                 "/updaterecord/{database}&table={table}&apikey={api}",
@@ -102,6 +115,10 @@ async fn main() {
             .route(
                 "/relationship/{database}&apikey={api}",
                 web::post().to(createrelationshipweb),
+            )
+            .route(
+                "relateparent/{database}&parent_table={parent_table}&child_table={child_table}&relationship_name={relationship_name}&apikey={api}",
+                web::post().to(createrelationshipparentweb),
             )
             .route(
                 "/deleterecord/{database}&table={table}&apikey={api}",
@@ -215,6 +232,42 @@ async fn createrelationshipweb(
             .body("Status: 400 Invalid API Key")
     }
 }
+async fn createrelationshipparentweb(
+    info: web::Path<(String, String,String,String,String)>,
+    body: web::Json<Value>,
+) -> impl Responder {
+
+    let valid = connkey::search_apikey(&info.0, &info.4);
+    if valid.unwrap() == false{
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+    }
+    let body = body.into_inner();
+    let mut conn= dbconnect::internalqueryconn();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        let parsed = createrelationship::parse_json(value.to_string());
+        println!("{:?}", parsed);
+        data.push((key.to_string(), parsed));
+    }
+
+    let related=relationships::Relationship_Builder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
+    let valid=related.check_relationship_name(&mut conn);
+    if valid==false{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 400 Relationship Name Already Exists")
+    }
+
+    let stmt=relationships::create_relationship_stmt(&related);
+    
+    let _=relationships::execute_relationship_stmt(&stmt, &mut conn);
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Relationship Created")
+}
 async fn deleterecord(
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
@@ -265,11 +318,16 @@ async fn createtableweb(
 
         let parsed_json = tablecreate::parse_json(data);
         if gps==true{
-            let stmt = tablecreate::create_table_web_gps(
+            let stmt = tablecreate::create_table_web(
                 &database,
                 &table,
                 &parsed_json.0,
                 &parsed_json.1,
+            );
+            let _ = tablecreate::exec_statement(&mut conn, &stmt);
+            let stmt = tablecreate::create_table_web_gps(
+                &database,
+                &table,
             );
             if stmt.starts_with("Invalid"){
                 return HttpResponse::Ok()
@@ -277,6 +335,7 @@ async fn createtableweb(
                     .body(stmt);
             }
             let _ = tablecreate::exec_statement(&mut conn, &stmt);
+            
         }else{
             let stmt = tablecreate::create_table_web(
                 &database,
@@ -344,6 +403,62 @@ async fn droptableweb(
         .content_type("text/json; charset=utf-8")
         .body("Table Dropped")
 }
+//grab attachment to put in s3 bucket
+async fn dbinsertattachment(
+    info: web::Path<(String, String, String)>,
+    body: web::Json<Value>,
+
+) -> impl Responder {
+    let valid = connkey::search_apikey(&info.0, &info.2);
+    if !valid.unwrap() {
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key");
+    }
+    //decode json
+    let body = body.into_inner();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(), value.to_string()));
+    }
+   // println!("{:?}", data);
+
+
+    let mut filename = data[0].1.clone();
+    filename = filename.replace("\"", "");
+
+    println!("{:?}", filename);
+    let mut attachment = data[1].1.clone();
+    attachment = attachment.replace("\"", "");
+    println!("{:?}", attachment);
+    let encoded = BASE64.decode(attachment.as_bytes()).unwrap();
+    println!("{:?}", encoded);
+
+    let insertstmt=insertrecords::insert_attachment(&info.0,&info.1,&filename,encoded);
+    let _=insertrecords::exec_insert(insertstmt.unwrap());
+
+    //upload to s3 bucket using rust-s3
+    //let bucket = "testbucket";
+    //let client = rusoto_s3::S3Client::new(rusoto_core::Region::UsEast1);
+    //let mut req = rusoto_s3::PutObjectRequest::default();
+    //req.bucket = bucket.to_string();
+    //req.key = filename.to_string();
+    //req.body = Some(encoded.into());
+    //let _ = client.put_object(req).await.unwrap();
+
+
+
+
+
+
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Record Inserted")
+
+}
+
+
 async fn dbinsert(
     info: web::Path<(String, String, String)>,
     body: web::Json<Vec<Value>>,
@@ -575,6 +690,54 @@ async fn query(form: web::Form<QueryData>) -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Success 200: Query Executed")
+}
+async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Responder{
+    let valid = connkey::search_apikey(&info.0, &info.2);
+    if valid.unwrap()==false{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Err 400: Not a valid API Key")
+    }
+    let mut connection = dbconnect::internalqueryconn();
+    let database = &info.0;
+    let relationship = &info.1;
+
+    let relationshipvec: Vec<relationships::Relationship_Builder> = relationships::query_relationships(&mut connection, relationship);
+    println!("{:?}", relationshipvec);
+    let parent_table = &relationshipvec[0].parent_table;
+    let child_table = &relationshipvec[0].child_table;
+    let whereclause = &relationshipvec[0].where_clause;
+    let querystmt=querytable::query_relationship(&database, &parent_table, &child_table, &whereclause).unwrap();
+    println!("{}", querystmt);
+    let selectvec=vec!["*"];
+    let where_clause=String::from("1=1");
+    let  select2=selectvec.clone();
+    let select3=selectvec.clone();
+
+    let queryresult = querytable::query_tables(
+        &parent_table,
+        &mut connection,
+        &where_clause,
+        &database,
+        selectvec,
+    );
+    let queryresultchild=querytable::query_tables(
+        &child_table, &mut connection, &where_clause, &database, select3);
+    println!("{:?}", queryresult);
+    let mut json=querytable::build_json_withchild(queryresult, child_table, &whereclause, database, parent_table, &mut connection, select2);
+
+
+    //let queryresult = querytable::exec_relationship_query(&mut connection, &querystmt).unwrap();
+    //println!("{:?}", queryresult);
+
+    //let json = serde_json::to_string(&relationshipvec).unwrap();
+
+
+
+    
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
 }
 async fn querytojson(info: web::Path<(String, String, String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.4);

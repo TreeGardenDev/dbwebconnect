@@ -37,7 +37,9 @@ pub fn create_databaseweb(database: &str) {
     //let mut conn=dbconnect::database_connection_no_db_web(database_user,database_password,database_host,port);
     let hash = connkey::random_password();
     //let query = format!("CREATE DATABASE IF NOT EXISTS {}", dbname);
-    let mut query = ("CREATE DATABASE IF NOT EXISTS ".to_string() + &dbname + ";").to_string();
+    let mut query = String::from("CREATE DATABASE IF NOT EXISTS ");
+    query.push_str(&dbname);
+    query.push_str(";");
     query.push_str("CREATE USER IF NOT EXISTS ");
     query.push_str(&dbname);
     query.push_str("@'%' IDENTIFIED BY '");
