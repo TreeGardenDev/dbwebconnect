@@ -42,6 +42,16 @@ pub fn create_table_web(database:&str,table_name: &str, column_names: &Vec<(Stri
         query.push_str(column_names[i].1.as_str());
         query.push_str(" ");
         query.push_str(column_types[i].1.as_str());
+        //grab first 7 characters of column type
+        //
+
+        if column_types[i].1.get(0..7)==Some("VARCHAR"){
+            query.push_str(" DEFAULT \"\" ");
+        }
+        if column_types[i].1.get(0..3)==Some("INT"){
+            query.push_str(" DEFAULT 0 ");
+        }
+
         query.push_str(", ");
     }
     query.pop();
