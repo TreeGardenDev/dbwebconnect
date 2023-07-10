@@ -2,8 +2,7 @@ use mysql::prelude::*;
 use mysql::*;
 use serde_json::json;
 
-use crate::{connkey, dbconnect};
-//use serde_json::Value;
+//use crate::{connkey, dbconnect};
 pub mod displayquery;
 pub fn query_tables(
     table: &str,
@@ -12,16 +11,13 @@ pub fn query_tables(
     database: &str,
     select: Vec<&str>,
 ) -> Vec<Vec<String>> {
-    //let columns = gettablecol::get_table_col(conn,table, database, select).unwrap();
     
     let columns_stmt = grab_columnnames(table, database, select).unwrap();
     let columns = exec_map(conn, &columns_stmt).unwrap();
 
-    //let columntypes = grab_columntypes(conn, table, database).unwrap();
 
     let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
 
-    //columndata
     querydata
 }
 
@@ -29,15 +25,11 @@ pub fn exec_map(
     conn: &mut PooledConn,
     query: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    //replace null with empty string
-    //let stmt: Vec<String> = conn.query_map(query, |data:String| data)?;
 
     let stmt: Vec<String> = conn.query_map_opt(query, |data | data.unwrap_or("".to_string()))?;
 
     //
 
-    //let stmt: Vec<String> = conn.query_map(query, |data| data)?;
-    //replace null with empty string
     Ok(stmt)
 }
 pub fn exec_map_tuple(
@@ -91,8 +83,6 @@ pub fn grab_columntypes_schema(
     query.push_str("'");
 
     Ok(query)
-    //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
-    //Ok(stmt)
 }
 pub fn grab_columnnames(
     table: &str,
@@ -211,22 +201,13 @@ fn deconstruct_where(whereclause: &str)-> (String,String){
     //grab valies from left and right of equal sign
     
     
-    let mut parent= wherevec2[0].to_string();
-    let mut child= wherevec2[1].to_string();
-   // let parent=String::from("col1");
-    //let child=String::from("col1");
+    let parent= wherevec2[0].to_string();
+    let child= wherevec2[1].to_string();
 
-    //parent= parent.replace(" ","");
-    //child= child.replace(" ","");
     (parent,child)
     
     
 
-   // let mut parent= wherevec[0].to_string();
-   // let mut child= wherevec[1].to_string();
-   // parent= parent.replace(" ","");
-   // child= child.replace(" ","");
-   // (parent,child) 
 }
 
 pub fn build_json_withchild(
@@ -242,10 +223,6 @@ pub fn build_json_withchild(
     let where_deconstructed = deconstruct_where(whereclause);
     let parentcolumn = where_deconstructed.0;
     let childcolumn = where_deconstructed.1;
-    //println!("parentcolumn: {}", parentcolumn);
-    //println!("childcolumn: {}", childcolumn);
-
-    //let columns = gettablecol::get_table_col(conn,table, database).unwrap();
     let columns_stmt = grab_columnnames(table, database, select).unwrap();
     let columns = exec_map(conn, &columns_stmt).unwrap();
     let mut recordcount = 0;
@@ -335,16 +312,6 @@ pub fn query_table_schema(
         //
         for y in constraints.iter(){
             if y.0 == columns[x]{
-                //check if constraint_name already exists for column
-                //if jsonarray["constraint_name"] != "" {
-                //    //if constraint_name already exists, append new constraint_name to existing constraint_name
-                //    let mut constraint_name = jsonarray["constraint_name"].to_string();
-                //    if constraint_name != "" {
-                //    constraint_name.push_str(", ");
-                //    constraint_name.push_str(&y.1.clone());
-                //    jsonarray["constraint_name"] = constraint_name.into();
-                //    }
-                //}else{
 
                 //    jsonarray["constraint_name"] = y.1.clone().into();
                 //}
@@ -424,13 +391,7 @@ pub fn query_relationship(database: &str,parent_table:&str, child_table:&str, wh
     query.push_str(where_clause);
     Ok(query)
 }
-//pub fn exec_relationship_query(conn: &mut PooledConn, stmt: &str) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-//    let stmt: Vec<Vec<String>> = conn.query_map_opt(stmt, |data| data.unwrap()).unwrap();
-//    //jlet stmt = conn.query(stmt).unwrap();
-//    Ok(stmt)
-//}
-//query constraints on table on database
-//link to column name on table
+
 pub fn query_constraints(
     table: &str,
     database: &str,
@@ -442,6 +403,75 @@ pub fn query_constraints(
     query.push_str("'");
     Ok(query)
 }
+fn query_unique_relationships(parent_table:&str) -> std::result::Result<(String, &str), Box<dyn std::error::Error>> {
+    let mut query = String::from("SELECT TARGETED_DATABASE, parent_table, child_table, where_clause FROM Relationships.relationships WHERE parent_table = '");
+    query.push_str(parent_table);
+    query.push_str("'");
+    Ok((query, parent_table))
+}
+
+fn count_unique_relationships(parent_table:&str) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    let mut query = String::from("SELECT COUNT(*) FROM Relationships.relationships WHERE parent_table = '");
+    query.push_str(parent_table);
+    query.push_str("'");
+    Ok(query)
+}
+fn exec_count_unique_relationships(
+    conn: &mut PooledConn,
+    query: &str,
+) -> std::result::Result<Vec<u32>, Box<dyn std::error::Error>> {
+    let stmt: Vec<u32> = conn.query_map(query, |data| data)?;
+    Ok(stmt)
+}
+fn exec_query_unique_relationships(
+    conn: &mut PooledConn,
+    query: &str,
+    parent_table: &str,
+) -> std::result::Result<Vec<UniqueRelation>, Box<dyn std::error::Error>> {
+    //create stmt that is a Vec<Vec<String>>
+    //let count_stmt: Vec<u32> = conn.query_map(query, |data| data)?;
+    let count = exec_count_unique_relationships(conn, query).unwrap().pop().unwrap();
+    let mut vectors: Vec<Vec<String>> = Vec::new();
+    for x in 0..count {
+        let stmt: Vec<String> = conn.query_map(query, |data| data)?;
+        vectors.push(stmt);
+    }
+    //put 
+
+    let mut unique_relation: Vec<UniqueRelation> = Vec::new();
+    for relationship in vectors.iter(){
+        let relation= UniqueRelation::new(relationship);
+        unique_relation.push(relation);
+
+    }
+
+
+    Ok(unique_relation)
+}
+
+
+pub fn initialize_db_table(
+    conn: &mut PooledConn,
+    database: &str,
+    table: &str,
+    relationships: Vec<UniqueRelation>,
+) -> std::result::Result<DatabaseTableDrilldown, Box<dyn std::error::Error>> {
+
+    let count= relationships.len();
+    let mut DatabaseTableDrilldown = DatabaseTableDrilldown::new(database, table, relationships, count.try_into().unwrap());
+
+    //search uniquw relatoinships via child table
+    //
+
+
+    Ok(DatabaseTableDrilldown)
+
+
+}
+
+
+
+
 pub struct TableColTypeStorage {
     pub table_name: String,
     pub columns: Vec<String>,
@@ -463,3 +493,64 @@ impl QueryResults {
         self.records.push(record);
     }
 }
+
+
+#[derive(Debug)]
+pub struct DatabaseTableDrilldown{
+    pub database: String,
+    pub table_name: String,
+    pub unique_relation: Vec<UniqueRelation>,
+    pub relation_count: i32,
+    pub unique_relation_count: i32,
+
+}
+impl DatabaseTableDrilldown{
+    pub fn new(database:&str, table_name: &str,unique_relation:Vec<UniqueRelation>, relation_count: i32) -> Self{
+        DatabaseTableDrilldown{
+            database: database.to_string(),
+            table_name: table_name.to_string(),
+            unique_relation,
+            relation_count,
+            unique_relation_count: relation_count,
+        }
+    }
+    pub fn add_relationship(&mut self, unique_relation: UniqueRelation){
+        self.unique_relation.push(unique_relation);
+        self.unique_relation_count;
+    }
+    
+}
+
+#[derive(Debug)]
+pub struct UniqueRelation{
+    pub parent_table: String,
+    pub parent_column: String,
+    pub child_table: String,
+    pub child_column: String,
+    pub database: String,
+}
+impl UniqueRelation{
+    pub fn new(relation_data:&Vec<String>) -> Self{
+        let parent_table = relation_data[1].clone();
+        let child_table = relation_data[2].clone();
+        let database = relation_data[0].clone();
+        let where_clause = relation_data[3].clone();
+
+        let split_column = where_clause.split("=");
+        let split_column = split_column.collect::<Vec<&str>>();
+        let parent_column = split_column[0].clone().to_string();
+        let child_column = split_column[1].clone().to_string();
+
+        UniqueRelation{
+            parent_table,
+            parent_column,
+            child_table,
+            child_column,
+            database,
+        }
+    }
+
+}
+
+
+
