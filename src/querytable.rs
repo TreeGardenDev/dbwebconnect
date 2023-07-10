@@ -1,6 +1,8 @@
 use mysql::prelude::*;
 use mysql::*;
 use serde_json::json;
+
+use crate::{connkey, dbconnect};
 //use serde_json::Value;
 pub mod displayquery;
 pub fn query_tables(
@@ -28,8 +30,11 @@ pub fn exec_map(
     query: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     //replace null with empty string
-    //let stmt: Vec<String> = conn.query_map(query, |data| data.unwrap_or("".to_string()))?;
-    let stmt: Vec<String> = conn.query_map_opt(query, |data | data.unwrap_or_default())?;
+    //let stmt: Vec<String> = conn.query_map(query, |data:String| data)?;
+
+    let stmt: Vec<String> = conn.query_map_opt(query, |data | data.unwrap_or("".to_string()))?;
+
+    //
 
     //let stmt: Vec<String> = conn.query_map(query, |data| data)?;
     //replace null with empty string
@@ -196,19 +201,20 @@ fn query_table(
 }
 fn deconstruct_where(whereclause: &str)-> (String,String){
     let wherestring= whereclause.to_string();
+    println!("where string before{:?}",wherestring);
     let wheresplit  = wherestring.split(".");
     let wherevec= wheresplit.collect::<Vec<&str>>();
-    let wheresplitequal= wherevec[1].split("=");
+    let wheresplitequal= wherevec[0].split("=");
     let wherevec2= wheresplitequal.collect::<Vec<&str>>();
     //split by . and =
     //get values to the right of the .
     //grab valies from left and right of equal sign
     
     
-    //let mut parent= wherevec2[1].to_string();
-    //let mut child= wherevec2[3].to_string();
-    let parent=String::from("col1");
-    let child=String::from("col1");
+    let mut parent= wherevec2[0].to_string();
+    let mut child= wherevec2[1].to_string();
+   // let parent=String::from("col1");
+    //let child=String::from("col1");
 
     //parent= parent.replace(" ","");
     //child= child.replace(" ","");
@@ -237,7 +243,19 @@ fn exec_child_table_query(
     
 }
 fn child_table_query_build(database: &str, child_table:&str, child_column:&str, parent_value:&str)->String{
-    let mut query = String::from("SELECT * FROM ");
+    let select=vec!["*"];
+    let child_cols_stmt=grab_columnnames(child_table, database, select).unwrap();
+    let mut conn=dbconnect::internalqueryconn();
+    let child_cols=exec_map(&mut conn,&child_cols_stmt).unwrap();
+    
+    let mut query = String::from("SELECT ");
+    for i in 0..child_cols.len() {
+        query.push_str(&child_cols[i]);
+        if i != child_cols.len() - 1 {
+            query.push_str(", ");
+        } 
+    }
+    query.push_str(" FROM ");
     query.push_str(database);
     query.push_str(".");
     query.push_str(child_table);
@@ -247,7 +265,9 @@ fn child_table_query_build(database: &str, child_table:&str, child_column:&str, 
     query.push_str(parent_value);
     query.push_str("'");
     let select=vec!["*"];
+    println!("query: {}", query);
     let columns=grab_columnnames(child_table, database, select).unwrap();
+    
     query
 }
 
@@ -284,24 +304,32 @@ pub fn build_json_withchild(
             println!("columns[i]: {}", columns[i]);
             println!("parentcolumn: {}", parentcolumn);
             if columns[i] == parentcolumn{
-                println!("parentcolumn: {}", parentcolumn);
-                println!("queryresult[i][x]: {}", queryresult[i][x]);
+                //write value of child column above into json
+                let childvalue= queryresult[i][x].clone();
+                jsonarray[&childcolumn] = childvalue.clone().into();
 
-                let childstatement= child_table_query_build(database, child_table, &childcolumn, &queryresult[i][x]);
-                println!("childstatement: {:?}", childstatement); 
-                println!("childcolumn: {}", childcolumn);
-                let childresult = exec_child_table_query(conn, &childstatement).unwrap();
-                for j in 0..childresult.len() {
-                    
+                
 
-                    let mut childarray = json!({});
-                    for k in 0..childresult[j].len() {
-                        println!("Childresult[j]: {}", childresult[j]);
-                        childarray[&columns[k]] = childresult[j].clone().into();
-                    }
-                    jsonarray[&childcolumn] = childarray;
+                let where_child= format!("{}='{}'", childcolumn, queryresult[i][x]);
 
-                }
+                let childtablequery=query_tables(child_table, conn, &where_child, database, vec!["*"]);
+                let jsonchild=build_json(childtablequery,&database, &child_table, conn, vec!["*"]);
+                jsonarray[&childcolumn] = jsonchild;
+
+
+                //let childresult = exec_child_table_query(conn, &childstatement).unwrap();
+           //     println!("childresult: {:?}", childresult);
+           //     for j in 0..childresult.len() {
+           //         
+
+           //         let mut childarray = json!({});
+           //         for k in 0..childresult[j].len() {
+           //             println!("Childresult[j]: {}", childresult[j]);
+           //             childarray[&columns[k]] = childresult[j].clone().into();
+           //         }
+           //         jsonarray[&childcolumn] = childarray;
+
+           //     }
                 
 
                 //grab child vector where value in parent column is equal to value in child column
