@@ -228,48 +228,6 @@ fn deconstruct_where(whereclause: &str)-> (String,String){
    // child= child.replace(" ","");
    // (parent,child) 
 }
-fn exec_child_table_query(
-    conn: &mut PooledConn,
-    statement: &String,
-) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    let query = statement.clone();
-    
-    let stmt = conn
-        .query_map(query.clone(), |columntypes: String| columntypes)
-        .unwrap();
-
-
-    Ok(stmt)
-    
-}
-fn child_table_query_build(database: &str, child_table:&str, child_column:&str, parent_value:&str)->String{
-    let select=vec!["*"];
-    let child_cols_stmt=grab_columnnames(child_table, database, select).unwrap();
-    let mut conn=dbconnect::internalqueryconn();
-    let child_cols=exec_map(&mut conn,&child_cols_stmt).unwrap();
-    
-    let mut query = String::from("SELECT ");
-    for i in 0..child_cols.len() {
-        query.push_str(&child_cols[i]);
-        if i != child_cols.len() - 1 {
-            query.push_str(", ");
-        } 
-    }
-    query.push_str(" FROM ");
-    query.push_str(database);
-    query.push_str(".");
-    query.push_str(child_table);
-    query.push_str(" WHERE ");
-    query.push_str(child_column);
-    query.push_str("= '");
-    query.push_str(parent_value);
-    query.push_str("'");
-    let select=vec!["*"];
-    println!("query: {}", query);
-    let columns=grab_columnnames(child_table, database, select).unwrap();
-    
-    query
-}
 
 pub fn build_json_withchild(
     queryresult: Vec<Vec<String>>,
@@ -284,8 +242,8 @@ pub fn build_json_withchild(
     let where_deconstructed = deconstruct_where(whereclause);
     let parentcolumn = where_deconstructed.0;
     let childcolumn = where_deconstructed.1;
-    println!("parentcolumn: {}", parentcolumn);
-    println!("childcolumn: {}", childcolumn);
+    //println!("parentcolumn: {}", parentcolumn);
+    //println!("childcolumn: {}", childcolumn);
 
     //let columns = gettablecol::get_table_col(conn,table, database).unwrap();
     let columns_stmt = grab_columnnames(table, database, select).unwrap();
@@ -301,48 +259,32 @@ pub fn build_json_withchild(
         let mut jsonarray:serde_json::Value = json!({});
         for i in 0..queryresult.len() {
             jsonarray[&columns[i]] = queryresult[i][x].clone().into();
-            println!("columns[i]: {}", columns[i]);
-            println!("parentcolumn: {}", parentcolumn);
+            //println!("columns[i]: {}", columns[i]);
+            //println!("parentcolumn: {}", parentcolumn);
             if columns[i] == parentcolumn{
                 //write value of child column above into json
-                let childvalue= queryresult[i][x].clone();
-                jsonarray[&childcolumn] = childvalue.clone().into();
+                jsonarray[&childcolumn]=  queryresult[i][x].clone().into();
 
                 
 
                 let where_child= format!("{}='{}'", childcolumn, queryresult[i][x]);
 
                 let childtablequery=query_tables(child_table, conn, &where_child, database, vec!["*"]);
-                let jsonchild=build_json(childtablequery,&database, &child_table, conn, vec!["*"]);
-                jsonarray[&childcolumn] = jsonchild;
-
-
-                //let childresult = exec_child_table_query(conn, &childstatement).unwrap();
-           //     println!("childresult: {:?}", childresult);
-           //     for j in 0..childresult.len() {
-           //         
-
-           //         let mut childarray = json!({});
-           //         for k in 0..childresult[j].len() {
-           //             println!("Childresult[j]: {}", childresult[j]);
-           //             childarray[&columns[k]] = childresult[j].clone().into();
-           //         }
-           //         jsonarray[&childcolumn] = childarray;
-
-           //     }
+                //check if childtablequery is empty
+                //if empty, write empty json into json
+                //
                 
+                if childtablequery[0].is_empty(){
+                    jsonarray[&childcolumn] = queryresult[i][x].clone().into();
+                }
+                else{
+                    let jsonchild=build_json(childtablequery,&database, &child_table, conn, vec!["*"]);
+                    //write both childvalue and jsonchild into json
+                    jsonarray[&childcolumn] = jsonchild;
+                }
 
-                //grab child vector where value in parent column is equal to value in child column
-                
-
-
-                //let mut childarray = json!({});
-                //for j in 0..childresult.len() {
-                //    println!("Childresult[j]: {}", childresult[j][x]);
-                //    childarray[&columns[j]] = childresult[j][x].clone().into();
-                //}
-                //jsonarray[&childcolumn] = childarray;
             }
+
         }
         jsondata[&x.to_string()] = jsonarray;
     }
