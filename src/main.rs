@@ -89,6 +89,10 @@ async fn main() {
                 "/queryrelationship/{database}&relationship={relationship}&apikey={api}",
                 web::get().to(queryrelationship),
             )
+            .route(
+                "/queryall/{database}&table={table}&depth={depth}&apikey={api}",
+                web::get().to(queryall),
+            )
             .service(
                 web::resource("/create")
                     .route(web::get().to(getcreate))
@@ -690,6 +694,30 @@ async fn query(form: web::Form<QueryData>) -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Success 200: Query Executed")
+}
+async fn queryall(info: web::Path<(String,String,String,String)>) -> impl Responder{
+    let valid = connkey::search_apikey(&info.0, &info.3);
+    if valid.unwrap()==false{
+        return HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Err 400: Not a valid API Key")
+    }
+    let mut connection = dbconnect::internalqueryconn();
+    let database = &info.0;
+    let table = &info.1;
+    let depth = &info.2;
+    let depth:i32 = depth.parse().unwrap();
+    let whereclause = String::from("1=1");
+
+    
+    let json=querytable::build_json_recursive(&mut connection, &database, &table, depth,1,&whereclause);
+
+
+
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
 }
 async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Responder{
     let valid = connkey::search_apikey(&info.0, &info.2);
