@@ -210,110 +210,6 @@ fn deconstruct_where(whereclause: &str)-> (String,String){
 
 }
 
-pub fn build_json_recursive(
-    conn: &mut PooledConn,
-    database: &str,
-    table: &str,
-    depth: i32,
-    current_depth: i32,
-    whereclause: &str,
-) -> serde_json::Value{
-    let relationships=query_unique_relationships(table).unwrap();
-    //println!("relationships: {:?}", relationships);
-    //get both parts of tuple
-    let stmt= relationships.0;
-    let parent= relationships.1;
-    let result=exec_query_unique_relationships(conn, &stmt, parent, database).unwrap();
-
-    let relationdrilldown=initialize_db_table(database, table, result).unwrap();
-    println!("relationdrilldown: {:?}", relationdrilldown);
-    //println!("result: {:?}", result);
-
-    let select=vec!["*"];
-    let columns_stmt = grab_columnnames(table, database, select).unwrap();
-    let columns = exec_map(conn, &columns_stmt).unwrap();
-    let select=vec!["*"];
-    let query= query_tables(
-            table,
-            conn,
-            &whereclause,
-            &database,
-            select,
-        );
-    let mut recordcount=0;
-    if let Some(row) = query.get(1) {
-        recordcount = row.len();
-        //println!("recordcount: {}", recordcount);
-    }
-    let select=vec!["*"];
-    let json=build_json(query.clone(), database, table, conn, select);
-    
-
-    let search=&relationdrilldown.unique_relation;
-    let mut childvec=Vec::new();
-    let mut parchild:Vec<(String,String)>=Vec::new();
-    println!("search: {:?}", search);
-    for i in 0..search.len(){
-        let child_table=&search[i].child_table;
-        childvec.push(child_table);
-
-        let child_colum= &search[i].child_column;
-        let parent_column= &search[i].parent_column;
-        
-
-        parchild.push((child_colum.to_string(),parent_column.to_string()));
-    }
-    println!("parchild: {:?}", parchild);
-    let mut jsondata:serde_json::Value=json!({});
-
-    for x in 0..recordcount {
-        let mut jsonarray:serde_json::Value = json!({});
-        for i in 0..query.len() {
-            jsonarray[&columns[i]] = query[i][x].clone().into();
-
-            for u in 0..parchild.len(){
-                if current_depth < depth && parchild.len()>0 &&columns[i] == parchild[u].1 {
-                    let where_child= format!("{}='{}'", parchild[u].0, query[i][x]);
-                    let json=build_json_recursive(conn, database, childvec[u], depth, current_depth+1, where_child.as_str());
-                    println!("json: {:?}", json);
-                    if json==json!({}){
-                        jsonarray[&columns[i]] = query[i][x].clone().into();
-                    }
-                    else{
-                        jsonarray[&parchild[u].0] = json;
-                    }
-
-                }
-            }
-
-        }
-        jsondata[&x.to_string()] = jsonarray;
-    }
-    jsondata
-
-
-
-
-
-
-
-
-
-
-
-    //let where_deconstructed = deconstruct_where(whereclause);
-    //let parentcolumn = where_deconstructed.0;
-    //let childcolumn = where_deconstructed.1;
-    //let columns_stmt = grab_columnnames(table, database, select).unwrap();
-    //let columns = exec_map(conn, &columns_stmt).unwrap();
-    //let mut recordcount = 0;
-    //if let Some(row) = queryresult.get(1) {
-    //    recordcount = row.len();
-    //    //println!("recordcount: {}", recordcount);
-    //}
-
-}
-
 pub fn build_json_withchild(
     queryresult: Vec<Vec<String>>,
     //childresult: Vec<Vec<String>>,
@@ -520,12 +416,7 @@ fn count_unique_relationships(parent_table:&str) -> std::result::Result<String, 
     query.push_str("'");
     Ok(query)
 }
-fn grab_child_unique_relationships(parent_table:&str) -> std::result::Result<String, Box<dyn std::error::Error>> {
-    let mut query = String::from("SELECT unique child_table FROM Relationships.relationships WHERE parent_table = '");
-    query.push_str(parent_table);
-    query.push_str("'");
-    Ok(query)
-}
+
 
 fn exec_count_unique_relationships(
     conn: &mut PooledConn,
@@ -577,13 +468,10 @@ pub fn initialize_db_table(
 ) -> std::result::Result<DatabaseTableDrilldown, Box<dyn std::error::Error>> {
 
     let count= relationships.len();
-    let DatabaseTableDrilldown = DatabaseTableDrilldown::new(database, table, relationships, count.try_into().unwrap());
-
-    //search uniquw relatoinships via child table
-    //
+    let database_table_drilldown = DatabaseTableDrilldown::new(database, table, relationships, count.try_into().unwrap());
 
 
-    Ok(DatabaseTableDrilldown)
+    Ok(database_table_drilldown)
 
 
 }
@@ -608,29 +496,79 @@ pub fn create_uniques(relationship_vec:Vec<Vec<String>>) -> std::result::Result<
     println!("{:?}", unique_relation);
     Ok(unique_relation)
 }
+pub fn build_json_recursive(
+    conn: &mut PooledConn,
+    database: &str,
+    table: &str,
+    depth: i32,
+    current_depth: i32,
+    whereclause: &str,
+) -> serde_json::Value{
+    let relationships=query_unique_relationships(table).unwrap();
 
+    let stmt= relationships.0;
+    let parent= relationships.1;
+    let result=exec_query_unique_relationships(conn, &stmt, parent, database).unwrap();
 
+    let relationdrilldown=initialize_db_table(database, table, result).unwrap();
 
-pub struct TableColTypeStorage {
-    pub table_name: String,
-    pub columns: Vec<String>,
-    pub types: Vec<String>,
-    pub constraints: Vec<(String,String)>,
-}
+    let select=vec!["*"];
+    let columns_stmt = grab_columnnames(table, database, select).unwrap();
+    let columns = exec_map(conn, &columns_stmt).unwrap();
+    let select=vec!["*"];
+    let query= query_tables(
+            table,
+            conn,
+            &whereclause,
+            &database,
+            select,
+        );
+    let mut recordcount=0;
+    if let Some(row) = query.get(1) {
+        recordcount = row.len();
+        //println!("recordcount: {}", recordcount);
+    }
+    
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct QueryResults {
-    pub records: Vec<Vec<String>>,
-}
-impl QueryResults {
-    pub fn new() -> Self {
-        QueryResults {
-            records: Vec::new(),
+    let search=&relationdrilldown.unique_relation;
+    let mut childvec=Vec::new();
+    let mut parchild:Vec<(String,String)>=Vec::new();
+    for i in 0..search.len(){
+        let child_table=&search[i].child_table;
+        childvec.push(child_table);
+
+        let child_colum= &search[i].child_column;
+        let parent_column= &search[i].parent_column;
+        
+
+        parchild.push((child_colum.to_string(),parent_column.to_string()));
+    }
+    let mut jsondata:serde_json::Value=json!({});
+
+    for x in 0..recordcount {
+        let mut jsonarray:serde_json::Value = json!({});
+        for i in 0..query.len() {
+            jsonarray[&columns[i]] = query[i][x].clone().into();
+
+            for u in 0..parchild.len(){
+                if current_depth < depth && parchild.len()>0 &&columns[i] == parchild[u].1 {
+                    let where_child= format!("{}='{}'", parchild[u].0, query[i][x]);
+                    let json=build_json_recursive(conn, database, childvec[u], depth, current_depth+1, where_child.as_str());
+                    if json==json!({}){
+                        jsonarray[&columns[i]] = query[i][x].clone().into();
+                    }
+                    else{
+                        jsonarray[&parchild[u].0] = json;
+                    }
+
+                }
+            }
+
         }
+        jsondata[&x.to_string()] = jsonarray;
     }
-    pub fn add_record(&mut self, record: Vec<String>) {
-        self.records.push(record);
-    }
+    jsondata
+
 }
 
 
