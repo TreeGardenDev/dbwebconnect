@@ -107,6 +107,10 @@ async fn main() {
                 web::post().to(dbinsertattachment)
             )
             .route(
+                "/retrieveattachment/{database}&table={table}&id={id}&apikey={api}",
+                web::get().to(retrieveattachment)
+            )
+            .route(
                 "/updaterecord/{database}&table={table}&apikey={api}",
                 web::post().to(dbupdaterecord),
             )
@@ -407,7 +411,43 @@ async fn droptableweb(
         .content_type("text/json; charset=utf-8")
         .body("Table Dropped")
 }
+async fn retrieveattachment(
+    info: web::Path<(String, String,String, String)>,
+)-> impl Responder{
+   let valid=connkey::search_apikey(&info.0,&info.3);
+    if valid.unwrap()==false{
+         return HttpResponse::Ok()
+         .content_type("text/json; charset=utf-8")
+         .body("Invalid API Key");
+    } 
+    let database=&info.0;
+    println!("{:?}",&info.1);
+    let table=&info.1;
+    println!("{:?}",&info.2);
+    let id=&info.2;
+    println!("{:?}",&info.3);
+
+    let mut conn=dbconnect::internalqueryconn();
+    
+    let stmt=querytable::retrieveattachmentstmt(table, database, id);
+    let result=querytable::exec_map(&mut conn, &stmt.unwrap());
+    let result=result.unwrap();
+    let encoded = BASE64.encode(&result[0].as_bytes());
+
+
+    let json=serde_json::json!(
+        {
+            "result":encoded
+        }
+    );
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
+
+}
 //grab attachment to put in s3 bucket
+
 async fn dbinsertattachment(
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
