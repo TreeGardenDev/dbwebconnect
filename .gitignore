@@ -3,3 +3,4 @@
 *.lock
 /data
 Cargo.lock
+.vscode
