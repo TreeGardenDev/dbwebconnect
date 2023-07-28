@@ -32,6 +32,7 @@ pub fn exec_map(
 
     Ok(stmt)
 }
+
 pub fn exec_map_tuple(
     conn: &mut PooledConn,
     query: &str,
@@ -152,6 +153,20 @@ pub fn grab_columnnames_schema(
     query.push_str(table);
     query.push_str("'");
     //let stmt: Vec<String> = conn.query_map(query, |datatype|datatype)?; //??
+    Ok(query)
+}
+pub fn retrieveattachmentstmt(
+    table: &str,
+    database: &str,
+    id: &str,
+) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    let mut query = String::from("SELECT Attachment FROM ");
+    query.push_str(database);
+    query.push_str(".");
+    query.push_str(table);
+    query.push_str("_GPS");
+    query.push_str(" WHERE INTERNAL_PRIMARY_KEY= ");
+    query.push_str(id);
     Ok(query)
 }
 
