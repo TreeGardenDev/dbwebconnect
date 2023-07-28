@@ -57,6 +57,7 @@ async fn main() {
             )
             .route("/main", web::get().to(index))
             .route("/auth", web::post().to(auth))
+            .route("/getkey/{database}&apikey={apikey}", web::get().to(getkey))
             .route("/method", web::post().to(method))
             .route("/createtable", web::post().to(createtable))
             .route(
@@ -303,6 +304,26 @@ async fn deleterecord(
             .body("Status: 400 Invalid API Key")
     }
 }
+async fn getkey(
+    info: web::Path<(String, String)>,
+) -> impl Responder {
+        let valid = connkey::search_apikey_admin(&info.1);
+        if valid.unwrap() == true {
+            let stmt=connkey::generate_apikey(&info.0).unwrap();
+            let key=connkey::execute_apikey(&stmt);
+            let retrnvalue=key.unwrap();
+            let respnse="{\"Status\": \"200\", \"APIKey\": \"".to_owned()+&retrnvalue+"\"}";
+            HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body(respnse)
+        } else {
+            HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Invalid API Key")
+        }
+
+}
+
 async fn createtableweb(
     info: web::Path<(String, String,String, String)>,
     body: web::Json<Value>,
