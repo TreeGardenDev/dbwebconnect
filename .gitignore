@@ -4,3 +4,4 @@
 /data
 Cargo.lock
 .vscode
+.idea

@@ -425,31 +425,31 @@ fn query_unique_relationships(parent_table:&str) -> std::result::Result<(String,
     Ok((query, parent_table))
 }
 
-fn count_unique_relationships(parent_table:&str) -> std::result::Result<String, Box<dyn std::error::Error>> {
-    let mut query = String::from("SELECT COUNT(1) FROM Relationships.relationships WHERE parent_table = '");
-    query.push_str(parent_table);
-    query.push_str("'");
-    Ok(query)
-}
-
-
-fn exec_count_unique_relationships(
-    conn: &mut PooledConn,
-    query: &str,
-) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    let stmt:Vec<String> = conn.query_map(query, |data| data)?;
-    Ok(stmt)
-}
+//fn count_unique_relationships(parent_table:&str) -> std::result::Result<String, Box<dyn std::error::Error>> {
+//    let mut query = String::from("SELECT COUNT(1) FROM Relationships.relationships WHERE parent_table = '");
+//    query.push_str(parent_table);
+//    query.push_str("'");
+//    Ok(query)
+//}
+//
+//
+//fn exec_count_unique_relationships(
+//    conn: &mut PooledConn,
+//    query: &str,
+//) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
+//    let stmt:Vec<String> = conn.query_map(query, |data| data)?;
+//    Ok(stmt)
+//}
 fn exec_query_unique_relationships(
     conn: &mut PooledConn,
-    query: &str,
+    _query: &str,
     parent_table: &str,
-    database: &str,
+    _database: &str,
 ) -> std::result::Result<Vec<UniqueRelation>, Box<dyn std::error::Error>> {
     //create stmt that is a Vec<Vec<String>>
     //let count_stmt: Vec<u32> = conn.query_map(query, |data| data)?;
-    let countstmt = count_unique_relationships(parent_table).unwrap();
-    let count = exec_count_unique_relationships(conn, &countstmt).unwrap()[0].parse::<u32>().unwrap();
+    //let countstmt = count_unique_relationships(parent_table).unwrap();
+    //let count = exec_count_unique_relationships(conn, &countstmt).unwrap()[0].parse::<u32>().unwrap();
 
     //let unique_child_tables = grab_child_unique_relationships(parent_table).unwrap();
     //let unique_child_tables = exec_count_unique_relationships(conn, &unique_child_tables).unwrap();
