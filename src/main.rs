@@ -6,17 +6,17 @@ use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use csv::Reader;
 use mysql::*;
-use mysql::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use data_encoding::BASE64;
-use rusoto_s3::*;
-
+//use rusoto_s3::*;
+//use mysql::prelude::*;
 //use crate::createrecord::generateform::CreateRelation;
 //use actix_identity::{CookieIdentityPolicy, IdentityService};
 //use futures_util::TryStreamExt as _;
 //use uuid::Uuid;
 //use actix_multipart::Multipart;
+//test
 pub mod connkey;
 pub mod createdatabase;
 pub mod createrecord;
@@ -73,7 +73,7 @@ async fn main() {
                 "/createdatabase/{database}&apikey={apikey}",
                 web::post().to(createnewdbweb),
             )
-            .route("/query", web::post().to(query))
+            //.route("/query", web::post().to(query))
             .route(
                 "/query/{database}&table={table}&select={select}&where={where}&apikey={api}",
                 web::get().to(querytojson),
@@ -261,7 +261,7 @@ async fn createrelationshipparentweb(
         data.push((key.to_string(), parsed));
     }
 
-    let related=relationships::Relationship_Builder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
+    let related=relationships::RelationshipBuilder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
     let valid=related.check_relationship_name(&mut conn);
     if valid==false{
         return HttpResponse::Ok()
@@ -708,14 +708,15 @@ async fn method(form: web::Form<FormData>) -> impl Responder {
         let _ = tablecreate::create_table(&mut connection, &datbase, &tablename, &columns, &types);
     } else if form.method == "newdb" {
         createdatabase::create_database(&form.database.to_string());
-    } else if form.method == "query" {
-        let mut connection = dbconnect::database_connection(&form.database.to_string());
-        let tablename = &form.table.to_string();
+    } 
+    //else if form.method == "query" {
+        //let connection = dbconnect::database_connection(&form.database.to_string());
+        //let tablename = &form.table.to_string();
         //let columns=getfields::read_fields(&form.csvpath.display().to_string());
         //let types=getfields::read_types(&form.csvpath.display().to_string());
         //let queryresult= querytable::query_tables(&tablename, &mut connection,&form.csvpath.display().to_string(), &form.database.to_string());
         //println!("{:?}",queryresult);
-    } else if form.method == "csv" {
+     else if form.method == "csv" {
         let mut connection = dbconnect::database_connection(&form.database.to_string());
         let _ = createrecord::create_session_csv(
             &mut connection,
@@ -739,23 +740,23 @@ async fn auth(form: web::Form<Auth>) -> impl Responder {
         .content_type("text/html; charset=utf-8")
         .body(include_str!("page.html"))
 }
-async fn query(form: web::Form<QueryData>) -> impl Responder {
-    let mut connection = dbconnect::database_connection(&form.database.to_string());
-    let tablename = &form.table.to_string();
-    let columns = pushdata::gettablecol::get_table_col(
-        &mut connection,
-        &tablename,
-        &form.database.to_string(),
-    )
-    .unwrap();
-    //let types=getfields::read_types(&form.csvpath.display().to_string());
-    //let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
-    //println!("{:?}",queryresult);
-    //let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
-    HttpResponse::Ok()
-        .content_type("text/json; charset=utf-8")
-        .body("Success 200: Query Executed")
-}
+//async fn query(form: web::Form<QueryData>) -> impl Responder {
+////    let mut connection = dbconnect::database_connection(&form.database.to_string());
+////    let tablename = &form.table.to_string();
+////    let columns = pushdata::gettablecol::get_table_col(
+////        &mut connection,
+////        &tablename,
+////        &form.database.to_string(),
+////    )
+////    .unwrap();
+//    //let types=getfields::read_types(&form.csvpath.display().to_string());
+//    //let queryresult= querytable::query_tables(&tablename, &mut connection,&form.whereclause.to_string(), &form.database.to_string());
+//    //println!("{:?}",queryresult);
+//    //let html=querytable::displayquery::buildhtml(queryresult, &form.database.to_string(), &form.table.to_string(), columns);
+//    HttpResponse::Ok()
+//        .content_type("text/json; charset=utf-8")
+//        .body("Success 200: Query Executed")
+//}
 async fn queryall(info: web::Path<(String,String,String,String)>) -> impl Responder{
     let valid = connkey::search_apikey(&info.0, &info.3);
     if valid.unwrap()==false{
@@ -791,17 +792,17 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
     let database = &info.0;
     let relationship = &info.1;
 
-    let relationshipvec: Vec<relationships::Relationship_Builder> = relationships::query_relationships(&mut connection, relationship);
-    println!("{:?}", relationshipvec);
+    let relationshipvec: Vec<relationships::RelationshipBuilder> = relationships::query_relationships(&mut connection, relationship);
+    //println!("{:?}", relationshipvec);
     let parent_table = &relationshipvec[0].parent_table;
     let child_table = &relationshipvec[0].child_table;
     let whereclause = &relationshipvec[0].where_clause;
-    let querystmt=querytable::query_relationship(&database, &parent_table, &child_table, &whereclause).unwrap();
-    println!("{}", querystmt);
+    //let querystmt=querytable::query_relationship(&database, &parent_table, &child_table, &whereclause).unwrap();
+    //println!("{}", querystmt);
     let selectvec=vec!["*"];
     let where_clause=String::from("1=1");
     let  select2=selectvec.clone();
-    let select3=selectvec.clone();
+    //let select3=selectvec.clone();
 
     let queryresult = querytable::query_tables(
         &parent_table,
@@ -810,10 +811,10 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
         &database,
         selectvec,
     );
-    let queryresultchild=querytable::query_tables(
-        &child_table, &mut connection, &where_clause, &database, select3);
-    println!("{:?}", queryresult);
-    let mut json=querytable::build_json_withchild(queryresult, child_table, &whereclause, database, parent_table, &mut connection, select2);
+    //let queryresultchild=querytable::query_tables(
+    //    &child_table, &mut connection, &where_clause, &database, select3);
+    //println!("{:?}", queryresult);
+    let json=querytable::build_json_withchild(queryresult, child_table, &whereclause, database, parent_table, &mut connection, select2);
 
 
     //let queryresult = querytable::exec_relationship_query(&mut connection, &querystmt).unwrap();
@@ -912,7 +913,7 @@ async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
         //turn into bool
         let expandbool: bool = expand.parse().unwrap();
 
-        let mut json=serde_json::json!({});
+        let mut _json:Value=serde_json::json!({});
         if expandbool==false{
 
         
@@ -920,7 +921,7 @@ async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
             select.push("*");
             let tablestmt=querytable::grab_tablenames(database);
             let tables=querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
-            json=querytable::json_table_names(tables.unwrap(), database);
+            _json=querytable::json_table_names(tables.unwrap(), database);
         }
         else{
             let mut select=Vec::new();
@@ -941,12 +942,12 @@ async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
                 storage.push((&tables[i], column.unwrap(), columntype.unwrap(), constraints.unwrap()));
             }
             println!("Storage: {:?}", storage);
-            json=querytable::query_database_schema(storage, database);
+            _json=querytable::query_database_schema(storage, database);
 
         }
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
-            .body(json.to_string())
+            .body(_json.to_string())
     }
     else{
         HttpResponse::Ok()
