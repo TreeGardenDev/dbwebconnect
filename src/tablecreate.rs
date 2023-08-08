@@ -7,6 +7,7 @@ pub fn exec_statement(conn: &mut PooledConn, statement: &str) {
 }
 pub fn create_table(conn: &mut PooledConn,database:&str, table_name: &str, column_names: &Vec<String>, column_types: &Vec<String> ){
     let mut query = String::from("CREATE TABLE ");
+
     query.push_str(database);
     query.push_str(".");
     query.push_str(table_name);
@@ -18,6 +19,7 @@ pub fn create_table(conn: &mut PooledConn,database:&str, table_name: &str, colum
         query.push_str(", ");
 
     }
+    
     query.pop();
     query.pop();
     query.push_str(")");
