@@ -46,17 +46,8 @@ input {
     </style>",
     );
 
-    html.push_str("<title>Database Connection</title>");
+    html.push_str("<title>Database Web Connector</title>");
     html.push_str("</head>");
-    html.push_str("<body>");
-    html.push_str("<br><br>");
-    html.push_str("<h1>Initialize Database Connection</h1>");
-    html.push_str("<form action=\"/\" method=\"post\">");
-    html.push_str("<label for=\"apikey\">Authorized Api Key:</label>");
-    html.push_str("<input type=\"text\" id=\"apikey\" name=\"apikey\"><br><br>");
-    html.push_str("<input type=\"submit\" value=\"Submit\">");
-    html.push_str("</form>");
-    html.push_str("</body>");
     html.push_str("</html>");
     println!("{}", html);
 
