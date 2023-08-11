@@ -95,7 +95,7 @@ pub fn search_apikey_admin(apikey:&str)-> Result<bool, Box<dyn std::error::Error
     }
 }
 
-pub fn insert_apikey(database: String, hash:String) -> Result<(), Box<dyn std::error::Error>> {
+pub fn insert_apikey(database: String, hash:String) -> Result<String, Box<dyn std::error::Error>> {
     let mut conn=dbconnect::internalqueryconnapikey();
     let mut apikey=ApiKey::new();
     apikey.populatekey(database);
@@ -110,8 +110,9 @@ pub fn insert_apikey(database: String, hash:String) -> Result<(), Box<dyn std::e
     stmt.push_str("')");
 
     conn.query_drop(stmt)?;
+    
 
-    Ok(())
+    Ok(apikey.apikey)
 }
 //generate a random password for the database
 //

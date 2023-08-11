@@ -661,10 +661,11 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
     if valid.unwrap() == true {
         let database_name = &info.0;
         //let apikey=&info.1;
-        let _ = createdatabase::create_databaseweb(database_name);
+        let key = createdatabase::create_databaseweb(database_name);
+        let response=serde_json::json!(key);
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
-            .body("Success 200: Database Created")
+            .body(response.to_string())
     } else {
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
