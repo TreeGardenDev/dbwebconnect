@@ -662,7 +662,9 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
         let database_name = &info.0;
         //let apikey=&info.1;
         let key = createdatabase::create_databaseweb(database_name);
-        let response=serde_json::json!(key);
+        let encoded=BASE64.encode(key.as_bytes());
+        let response=serde_json::json!(encoded);
+
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body(response.to_string())
@@ -672,6 +674,8 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
             .body("Err 500: Not a valid API Key")
     }
 }
+
+
 //async fn createtable(MultipartForm(form): MultipartForm<CreateTable>) -> impl Responder {
 //    let mut connection = dbconnect::internalqueryconn();
 //    let database = &form.database.clone();
