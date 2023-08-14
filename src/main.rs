@@ -74,7 +74,7 @@ async fn main() {
             )
             //.route("/query", web::post().to(query))
             .route(
-                "/query/{database}&table={table}&select={select}&where={where}&apikey={api}",
+                "/query/{database}&table={table}&select={select}&where={where}&expand={expand}&apikey={api}",
                 web::get().to(querytojson),
             )
             .route(
@@ -815,6 +815,7 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
         &where_clause,
         &database,
         selectvec,
+        false,
     );
     //let queryresultchild=querytable::query_tables(
     //    &child_table, &mut connection, &where_clause, &database, select3);
@@ -834,8 +835,8 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-async fn querytojson(info: web::Path<(String, String, String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.4);
+async fn querytojson(info: web::Path<(String, String, String, String, String, String)>) -> impl Responder {
+    let valid = connkey::search_apikey(&info.0, &info.5);
     if valid.unwrap() == true {
         let mut connection = dbconnect::internalqueryconn();
 
@@ -843,6 +844,8 @@ async fn querytojson(info: web::Path<(String, String, String, String, String)>) 
         let tablename = &info.1;
         let select = &info.2;
         let whereclause = &info.3;
+        let expanded= &info.4;
+        let expbool=expanded.parse::<bool>().unwrap();
         //select is comma separated list of columns
         //separate select into vector
         let selectvec: Vec<&str> = select.split(',').collect();
@@ -860,9 +863,10 @@ async fn querytojson(info: web::Path<(String, String, String, String, String)>) 
             &whereclause,
             &database,
             selectvec,
+            expbool
         );
         let json =
-            querytable::build_json(queryresult, &database, &tablename, &mut connection, select2);
+            querytable::build_json(queryresult, &database, &tablename, &mut connection, select2, expbool);
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
