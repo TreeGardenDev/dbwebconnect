@@ -74,7 +74,7 @@ async fn main() {
             )
             //.route("/query", web::post().to(query))
             .route(
-                "/query/{database}&table={table}&select={select}&where={where}&apikey={api}",
+                "/query/{database}&table={table}&select={select}&where={where}&expand={expand}&apikey={api}",
                 web::get().to(querytojson),
             )
             .route(
@@ -662,7 +662,9 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
         let database_name = &info.0;
         //let apikey=&info.1;
         let key = createdatabase::create_databaseweb(database_name);
-        let response=serde_json::json!(key);
+        let encoded=BASE64.encode(key.as_bytes());
+        let response=serde_json::json!(encoded);
+
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body(response.to_string())
@@ -672,6 +674,8 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
             .body("Err 500: Not a valid API Key")
     }
 }
+
+
 //async fn createtable(MultipartForm(form): MultipartForm<CreateTable>) -> impl Responder {
 //    let mut connection = dbconnect::internalqueryconn();
 //    let database = &form.database.clone();
@@ -811,6 +815,7 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
         &where_clause,
         &database,
         selectvec,
+        false,
     );
     //let queryresultchild=querytable::query_tables(
     //    &child_table, &mut connection, &where_clause, &database, select3);
@@ -830,8 +835,8 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-async fn querytojson(info: web::Path<(String, String, String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.4);
+async fn querytojson(info: web::Path<(String, String, String, String, String, String)>) -> impl Responder {
+    let valid = connkey::search_apikey(&info.0, &info.5);
     if valid.unwrap() == true {
         let mut connection = dbconnect::internalqueryconn();
 
@@ -839,6 +844,8 @@ async fn querytojson(info: web::Path<(String, String, String, String, String)>) 
         let tablename = &info.1;
         let select = &info.2;
         let whereclause = &info.3;
+        let expanded= &info.4;
+        let expbool=expanded.parse::<bool>().unwrap();
         //select is comma separated list of columns
         //separate select into vector
         let selectvec: Vec<&str> = select.split(',').collect();
@@ -856,9 +863,10 @@ async fn querytojson(info: web::Path<(String, String, String, String, String)>) 
             &whereclause,
             &database,
             selectvec,
+            expbool
         );
         let json =
-            querytable::build_json(queryresult, &database, &tablename, &mut connection, select2);
+            querytable::build_json(queryresult, &database, &tablename, &mut connection, select2, expbool);
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")

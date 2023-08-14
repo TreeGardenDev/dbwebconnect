@@ -10,15 +10,26 @@ pub fn query_tables(
     whereclause: &str,
     database: &str,
     select: Vec<&str>,
+    expanded: bool,
 ) -> Vec<Vec<String>> {
+
+    if !expanded{
     
-    let columns_stmt = grab_columnnames(table, database, select).unwrap();
-    let columns = exec_map(conn, &columns_stmt).unwrap();
+        let columns_stmt = grab_columnnames(table, database, select).unwrap();
+        let columns = exec_map(conn, &columns_stmt).unwrap();
 
 
-    let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
+        let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
 
-    querydata
+        querydata
+    }
+    else{
+        let columns_stmt = grab_all_columnames(table, database, select).unwrap();
+        let columns = exec_map(conn, &columns_stmt).unwrap();
+
+        let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
+        querydata
+    }
 }
 
 pub fn exec_map(
@@ -261,7 +272,7 @@ pub fn build_json_withchild(
 
                 let where_child= format!("{}='{}'", childcolumn, queryresult[i][x]);
 
-                let childtablequery=query_tables(child_table, conn, &where_child, database, vec!["*"]);
+                let childtablequery=query_tables(child_table, conn, &where_child, database, vec!["*"], false);
                 //check if childtablequery is empty
                 //if empty, write empty json into json
                 //
@@ -270,7 +281,7 @@ pub fn build_json_withchild(
                     jsonarray[&childcolumn] = queryresult[i][x].clone().into();
                 }
                 else{
-                    let jsonchild=build_json(childtablequery,&database, &child_table, conn, vec!["*"]);
+                    let jsonchild=build_json(childtablequery,&database, &child_table, conn, vec!["*"], false);
                     //write both childvalue and jsonchild into json
                     jsonarray[&childcolumn] = jsonchild;
                 }
@@ -288,10 +299,21 @@ pub fn build_json(
     table: &str,
     conn: &mut PooledConn,
     select: Vec<&str>,
+    expand: bool,
 ) -> serde_json::Value{
     //let columns = gettablecol::get_table_col(conn,table, database).unwrap();
-    let columns_stmt = grab_columnnames(table, database, select).unwrap();
-    let columns = exec_map(conn, &columns_stmt).unwrap();
+
+    let mut columns_stmt=String::new();
+    let mut columns:Vec<String>=Vec::new();
+    if !expand{
+    columns_stmt = grab_columnnames(table, database, select).unwrap();
+    columns = exec_map(conn, &columns_stmt).unwrap();
+    }
+    else if expand{
+        columns_stmt = grab_all_columnames(table, database, vec!["*"]).unwrap();
+        columns = exec_map(conn, &columns_stmt).unwrap();
+    }
+    
     let mut recordcount = 0;
     if let Some(row) = queryresult.get(1) {
         recordcount = row.len();
@@ -537,6 +559,7 @@ pub fn build_json_recursive(
             &whereclause,
             &database,
             select,
+            false
         );
     let mut recordcount=0;
     if let Some(row) = query.get(1) {
