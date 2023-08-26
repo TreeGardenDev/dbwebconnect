@@ -101,10 +101,21 @@ impl TableDef {
                         stmt.push_str(&valuedata);
                         stmt.push_str("'");
                     }
+                    "text"=>{
+                        stmt.push_str("'");
+                        stmt.push_str(&valuedata);
+                        stmt.push_str("'");
+                    }
                     "datetime"=>{
                         stmt.push_str("'");
                         stmt.push_str(&valuedata);
                         stmt.push_str("'");
+                    }
+                    "boolean"=>{
+                        stmt.push_str(&valuedata);
+                    }
+                    "tinyint(1)"=>{
+                        stmt.push_str(&valuedata);
                     }
                     "date"=>{
                         stmt.push_str("'");
