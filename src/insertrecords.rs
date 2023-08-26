@@ -101,6 +101,16 @@ impl TableDef {
                         stmt.push_str(&valuedata);
                         stmt.push_str("'");
                     }
+                    "datetime"=>{
+                        stmt.push_str("'");
+                        stmt.push_str(&valuedata);
+                        stmt.push_str("'");
+                    }
+                    "date"=>{
+                        stmt.push_str("'");
+                        stmt.push_str(&valuedata);
+                        stmt.push_str("'");
+                    }
                     _ => {
                         stmt.push_str("NULL");
                     }
