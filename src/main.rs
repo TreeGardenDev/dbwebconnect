@@ -3,18 +3,10 @@ use actix_session::{storage::RedisActorSessionStore, SessionMiddleware};
 use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use csv::Reader;
+use data_encoding::BASE64;
 use mysql::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use data_encoding::BASE64;
-//use rusoto_s3::*;
-//use mysql::prelude::*;
-//use crate::createrecord::generateform::CreateRelation;
-//use actix_identity::{CookieIdentityPolicy, IdentityService};
-//use futures_util::TryStreamExt as _;
-//use uuid::Uuid;
-//use actix_multipart::Multipart;
-//test
 pub mod connkey;
 pub mod createdatabase;
 pub mod createrecord;
@@ -26,15 +18,21 @@ pub mod initconnect;
 pub mod insertrecords;
 pub mod pushdata;
 pub mod querytable;
+pub mod relationships;
 pub mod tablecreate;
 pub mod update;
-pub mod relationships;
-
+//use rusoto_s3::*;
+//use mysql::prelude::*;
+//use crate::createrecord::generateform::CreateRelation;
+//use actix_identity::{CookieIdentityPolicy, IdentityService};
+//use futures_util::TryStreamExt as _;
+//use uuid::Uuid;
+//use actix_multipart::Multipart;
+//test
 #[actix_web::main]
 async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080");
-
     //let pword=std::env::args().nth(2).unwrap();
 
     let secretkey = cookie::Key::generate();
@@ -132,11 +130,11 @@ async fn main() {
                 "/deleterecord/{database}&table={table}&apikey={api}",
                 web::post().to(deleterecord),
             )
-            //.service(
-            //    web::resource("/createrelation")
-            //        .route(web::get().to(getcreaterelation))
-            //        .route(web::post().to(postcreaterelationdefined)),
-            //)
+        //.service(
+        //    web::resource("/createrelation")
+        //        .route(web::get().to(getcreaterelation))
+        //        .route(web::post().to(postcreaterelationdefined)),
+        //)
 
         //            .route("/insert", web::post().to(method))
         //           .route("/create", web::post().to(method))
@@ -221,7 +219,6 @@ async fn createrelationshipweb(
 ) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.1);
     if valid.unwrap() == true {
-
         let body = body.into_inner();
         let mut data = Vec::new();
         for (key, value) in body.as_object().unwrap().iter() {
@@ -242,18 +239,18 @@ async fn createrelationshipweb(
     }
 }
 async fn createrelationshipparentweb(
-    info: web::Path<(String, String,String,String,String)>,
+    info: web::Path<(String, String, String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-
     let valid = connkey::search_apikey(&info.0, &info.4);
-    if valid.unwrap() == false{
+    if valid.unwrap() == false {
         return HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key")
+            .body("Status: 400 Invalid API Key");
     }
+
     let body = body.into_inner();
-    let mut conn= dbconnect::internalqueryconn();
+    let mut conn = dbconnect::internalqueryconn();
     let mut data = Vec::new();
     for (key, value) in body.as_object().unwrap().iter() {
         let parsed = createrelationship::parse_json(value.to_string());
@@ -261,17 +258,23 @@ async fn createrelationshipparentweb(
         data.push((key.to_string(), parsed));
     }
 
-    let related=relationships::RelationshipBuilder::new(&info.0, &info.1, &info.2, &info.3, &data[0].1.clone());
-    let valid=related.check_relationship_name(&mut conn);
-    if valid==false{
+    let related = relationships::RelationshipBuilder::new(
+        &info.0,
+        &info.1,
+        &info.2,
+        &info.3,
+        &data[0].1.clone(),
+    );
+    let valid = related.check_relationship_name(&mut conn);
+    if valid == false {
         return HttpResponse::Ok()
-        .content_type("text/json; charset=utf-8")
-        .body("Status: 400 Relationship Name Already Exists")
+            .content_type("text/json; charset=utf-8")
+            .body("Status: 400 Relationship Name Already Exists");
     }
 
-    let stmt=relationships::create_relationship_stmt(&related);
-    
-    let _=relationships::execute_relationship_stmt(&stmt, &mut conn);
+    let stmt = relationships::create_relationship_stmt(&related);
+
+    let _ = relationships::execute_relationship_stmt(&stmt, &mut conn);
 
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
@@ -304,28 +307,25 @@ async fn deleterecord(
             .body("Status: 400 Invalid API Key")
     }
 }
-async fn getkey(
-    info: web::Path<(String, String)>,
-) -> impl Responder {
-        let valid = connkey::search_apikey_admin(&info.1);
-        if valid.unwrap() == true {
-            let stmt=connkey::generate_apikey(&info.0).unwrap();
-            let key=connkey::execute_apikey(&stmt);
-            let retrnvalue=key.unwrap();
-            let respnse="{\"Status\": \"200\", \"APIKey\": \"".to_owned()+&retrnvalue+"\"}";
-            HttpResponse::Ok()
+async fn getkey(info: web::Path<(String, String)>) -> impl Responder {
+    let valid = connkey::search_apikey_admin(&info.1);
+    if valid.unwrap() == true {
+        let stmt = connkey::generate_apikey(&info.0).unwrap();
+        let key = connkey::execute_apikey(&stmt);
+        let retrnvalue = key.unwrap();
+        let respnse = "{\"Status\": \"200\", \"APIKey\": \"".to_owned() + &retrnvalue + "\"}";
+        HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body(respnse)
-        } else {
-            HttpResponse::Ok()
+    } else {
+        HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body("Status: 400 Invalid API Key")
-        }
-
+    }
 }
 
 async fn createtableweb(
-    info: web::Path<(String, String,String, String)>,
+    info: web::Path<(String, String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
     println!("{:?}", &info.3);
@@ -341,39 +341,27 @@ async fn createtableweb(
         println!("{:?}", data);
         let database = &info.0;
         let table = &info.1;
-        let gps=&info.2;
+        let gps = &info.2;
         //convert gps to bool
-        let gps=gps.parse::<bool>().unwrap();
+        let gps = gps.parse::<bool>().unwrap();
 
         let parsed_json = tablecreate::parse_json(data);
-        if gps==true{
-            let stmt = tablecreate::create_table_web(
-                &database,
-                &table,
-                &parsed_json.0,
-                &parsed_json.1,
-            );
+        if gps == true {
+            let stmt =
+                tablecreate::create_table_web(&database, &table, &parsed_json.0, &parsed_json.1);
             let _ = tablecreate::exec_statement(&mut conn, &stmt);
-            let stmt = tablecreate::create_table_web_gps(
-                &database,
-                &table,
-            );
-            if stmt.starts_with("Invalid"){
+            let stmt = tablecreate::create_table_web_gps(&database, &table);
+            if stmt.starts_with("Invalid") {
                 return HttpResponse::Ok()
                     .content_type("text/json; charset=utf-8")
                     .body(stmt);
             }
             let _ = tablecreate::exec_statement(&mut conn, &stmt);
-            
-        }else{
-            let stmt = tablecreate::create_table_web(
-                &database,
-                &table,
-                &parsed_json.0,
-                &parsed_json.1,
-            );
+        } else {
+            let stmt =
+                tablecreate::create_table_web(&database, &table, &parsed_json.0, &parsed_json.1);
             //check if statement says invalid as the first word
-            if stmt.starts_with("Invalid"){
+            if stmt.starts_with("Invalid") {
                 return HttpResponse::Ok()
                     .content_type("text/json; charset=utf-8")
                     .body(stmt);
@@ -432,31 +420,28 @@ async fn droptableweb(
         .content_type("text/json; charset=utf-8")
         .body("Table Dropped")
 }
-async fn retrieveattachment(
-    info: web::Path<(String, String,String, String)>,
-)-> impl Responder{
-   let valid=connkey::search_apikey(&info.0,&info.3);
-    if valid.unwrap()==false{
-         return HttpResponse::Ok()
-         .content_type("text/json; charset=utf-8")
-         .body("Invalid API Key");
-    } 
-    let database=&info.0;
-    println!("{:?}",&info.1);
-    let table=&info.1;
-    println!("{:?}",&info.2);
-    let id=&info.2;
-    println!("{:?}",&info.3);
+async fn retrieveattachment(info: web::Path<(String, String, String, String)>) -> impl Responder {
+    let valid = connkey::search_apikey(&info.0, &info.3);
+    if valid.unwrap() == false {
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid API Key");
+    }
+    let database = &info.0;
+    println!("{:?}", &info.1);
+    let table = &info.1;
+    println!("{:?}", &info.2);
+    let id = &info.2;
+    println!("{:?}", &info.3);
 
-    let mut conn=dbconnect::internalqueryconn();
-    
-    let stmt=querytable::retrieveattachmentstmt(table, database, id);
-    let result=querytable::exec_map(&mut conn, &stmt.unwrap());
-    let result=result.unwrap();
+    let mut conn = dbconnect::internalqueryconn();
+
+    let stmt = querytable::retrieveattachmentstmt(table, database, id);
+    let result = querytable::exec_map(&mut conn, &stmt.unwrap());
+    let result = result.unwrap();
     let encoded = BASE64.encode(&result[0].as_bytes());
 
-
-    let json=serde_json::json!(
+    let json = serde_json::json!(
         {
             "result":encoded
         }
@@ -465,14 +450,12 @@ async fn retrieveattachment(
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
-
 }
 //grab attachment to put in s3 bucket
 
 async fn dbinsertattachment(
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
-
 ) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.2);
     if !valid.unwrap() {
@@ -486,8 +469,7 @@ async fn dbinsertattachment(
     for (key, value) in body.as_object().unwrap().iter() {
         data.push((key.to_string(), value.to_string()));
     }
-   // println!("{:?}", data);
-
+    // println!("{:?}", data);
 
     let mut filename = data[0].1.clone();
     filename = filename.replace("\"", "");
@@ -499,8 +481,8 @@ async fn dbinsertattachment(
     let encoded = BASE64.decode(attachment.as_bytes()).unwrap();
     println!("{:?}", encoded);
 
-    let insertstmt=insertrecords::insert_attachment(&info.0,&info.1,&filename,encoded);
-    let _=insertrecords::exec_insert(insertstmt.unwrap());
+    let insertstmt = insertrecords::insert_attachment(&info.0, &info.1, &filename, encoded);
+    let _ = insertrecords::exec_insert(insertstmt.unwrap());
 
     //upload to s3 bucket using rust-s3
     //let bucket = "testbucket";
@@ -511,18 +493,10 @@ async fn dbinsertattachment(
     //req.body = Some(encoded.into());
     //let _ = client.put_object(req).await.unwrap();
 
-
-
-
-
-
-
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body("Status: 200 Record Inserted")
-
 }
-
 
 async fn dbinsert(
     info: web::Path<(String, String, String)>,
@@ -531,8 +505,8 @@ async fn dbinsert(
     let valid = connkey::search_apikey(&info.0, &info.2);
     if valid.unwrap() == true {
         let body = body.into_inner();
-        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
-        for record in body.iter(){
+        let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
+        for record in body.iter() {
             let mut data = Vec::new();
             for (key, value) in record.as_object().unwrap().iter() {
                 data.push((key.to_string(), value.to_string()));
@@ -558,7 +532,6 @@ async fn dbinsert(
                 .content_type("text/json; charset=utf-8")
                 .body("Invalid Data");
         }
-        
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
@@ -603,7 +576,7 @@ async fn dbinsert(
 //                .content_type("text/json; charset=utf-8")
 //                .body("Invalid Data");
 //        }
-//        
+//
 //
 //        HttpResponse::Ok()
 //            .content_type("text/json; charset=utf-8")
@@ -622,13 +595,13 @@ async fn dbupdaterecord(
     if valid.unwrap() == true {
         let mut conn = dbconnect::internalqueryconnapikey();
         let body = body.into_inner();
-        let mut storagevec:Vec<Vec<(String,String)>> = Vec::new();
+        let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
         //let mut data = Vec::new();
-        for record in body.iter(){
+        for record in body.iter() {
             let mut data = Vec::new();
             for (key, value) in record.as_object().unwrap().iter() {
-                let strkey=key.as_str();
-                let strvalue=value.as_str().unwrap();
+                let strkey = key.as_str();
+                let strvalue = value.as_str().unwrap();
                 data.push((strkey.to_string(), strvalue.to_string()));
             }
             storagevec.push(data);
@@ -636,7 +609,7 @@ async fn dbupdaterecord(
         let database = &info.0;
         let table = &info.1;
         let statement = update::updaterecord(database, table, storagevec);
-        for statement in statement.iter(){
+        for statement in statement.iter() {
             let _ = update::executeupdaterecord(&mut conn, &statement);
         }
 
@@ -662,8 +635,8 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
         let database_name = &info.0;
         //let apikey=&info.1;
         let key = createdatabase::create_databaseweb(database_name);
-        let encoded=BASE64.encode(key.as_bytes());
-        let response=serde_json::json!(encoded);
+        let encoded = BASE64.encode(key.as_bytes());
+        let response = serde_json::json!(encoded);
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
@@ -674,7 +647,6 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
             .body("Err 500: Not a valid API Key")
     }
 }
-
 
 //async fn createtable(MultipartForm(form): MultipartForm<CreateTable>) -> impl Responder {
 //    let mut connection = dbconnect::internalqueryconn();
@@ -713,7 +685,7 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
 //        let _ = tablecreate::create_table(&mut connection, &datbase, &tablename, &columns, &types);
 //    } else if form.method == "newdb" {
 //        createdatabase::create_database(&form.database.to_string());
-//    } 
+//    }
 //    //else if form.method == "query" {
 //        //let connection = dbconnect::database_connection(&form.database.to_string());
 //        //let tablename = &form.table.to_string();
@@ -762,51 +734,55 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
 //        .content_type("text/json; charset=utf-8")
 //        .body("Success 200: Query Executed")
 //}
-async fn queryall(info: web::Path<(String,String,String,String)>) -> impl Responder{
+async fn queryall(info: web::Path<(String, String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.3);
-    if valid.unwrap()==false{
+    if valid.unwrap() == false {
         return HttpResponse::Ok()
-        .content_type("text/json; charset=utf-8")
-        .body("Err 400: Not a valid API Key")
+            .content_type("text/json; charset=utf-8")
+            .body("Err 400: Not a valid API Key");
     }
     let mut connection = dbconnect::internalqueryconn();
     let database = &info.0;
     let table = &info.1;
     let depth = &info.2;
-    let depth:i32 = depth.parse().unwrap();
+    let depth: i32 = depth.parse().unwrap();
     let whereclause = String::from("1=1");
 
-    
-    let json=querytable::build_json_recursive(&mut connection, &database, &table, depth,1,&whereclause);
-
-
-
+    let json = querytable::build_json_recursive(
+        &mut connection,
+        &database,
+        &table,
+        depth,
+        1,
+        &whereclause,
+    );
 
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Responder{
+async fn queryrelationship(info: web::Path<(String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap()==false{
+    if valid.unwrap() == false {
         return HttpResponse::Ok()
-        .content_type("text/json; charset=utf-8")
-        .body("Err 400: Not a valid API Key")
+            .content_type("text/json; charset=utf-8")
+            .body("Err 400: Not a valid API Key");
     }
     let mut connection = dbconnect::internalqueryconn();
     let database = &info.0;
     let relationship = &info.1;
 
-    let relationshipvec: Vec<relationships::RelationshipBuilder> = relationships::query_relationships(&mut connection, relationship);
+    let relationshipvec: Vec<relationships::RelationshipBuilder> =
+        relationships::query_relationships(&mut connection, relationship);
     //println!("{:?}", relationshipvec);
     let parent_table = &relationshipvec[0].parent_table;
     let child_table = &relationshipvec[0].child_table;
     let whereclause = &relationshipvec[0].where_clause;
     //let querystmt=querytable::query_relationship(&database, &parent_table, &child_table, &whereclause).unwrap();
     //println!("{}", querystmt);
-    let selectvec=vec!["*"];
-    let where_clause=String::from("1=1");
-    let  select2=selectvec.clone();
+    let selectvec = vec!["*"];
+    let where_clause = String::from("1=1");
+    let select2 = selectvec.clone();
     //let select3=selectvec.clone();
 
     let queryresult = querytable::query_tables(
@@ -820,22 +796,28 @@ async fn queryrelationship(info: web::Path<(String,String,String)>) -> impl Resp
     //let queryresultchild=querytable::query_tables(
     //    &child_table, &mut connection, &where_clause, &database, select3);
     //println!("{:?}", queryresult);
-    let json=querytable::build_json_withchild(queryresult, child_table, &whereclause, database, parent_table, &mut connection, select2);
-
+    let json = querytable::build_json_withchild(
+        queryresult,
+        child_table,
+        &whereclause,
+        database,
+        parent_table,
+        &mut connection,
+        select2,
+    );
 
     //let queryresult = querytable::exec_relationship_query(&mut connection, &querystmt).unwrap();
     //println!("{:?}", queryresult);
 
     //let json = serde_json::to_string(&relationshipvec).unwrap();
 
-
-
-    
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-async fn querytojson(info: web::Path<(String, String, String, String, String, String)>) -> impl Responder {
+async fn querytojson(
+    info: web::Path<(String, String, String, String, String, String)>,
+) -> impl Responder {
     let valid = connkey::search_apikey(&info.0, &info.5);
     if valid.unwrap() == true {
         let mut connection = dbconnect::internalqueryconn();
@@ -844,8 +826,8 @@ async fn querytojson(info: web::Path<(String, String, String, String, String, St
         let tablename = &info.1;
         let select = &info.2;
         let whereclause = &info.3;
-        let expanded= &info.4;
-        let expbool=expanded.parse::<bool>().unwrap();
+        let expanded = &info.4;
+        let expbool = expanded.parse::<bool>().unwrap();
         //select is comma separated list of columns
         //separate select into vector
         let selectvec: Vec<&str> = select.split(',').collect();
@@ -863,10 +845,16 @@ async fn querytojson(info: web::Path<(String, String, String, String, String, St
             &whereclause,
             &database,
             selectvec,
-            expbool
+            expbool,
         );
-        let json =
-            querytable::build_json(queryresult, &database, &tablename, &mut connection, select2, expbool);
+        let json = querytable::build_json(
+            queryresult,
+            &database,
+            &tablename,
+            &mut connection,
+            select2,
+            expbool,
+        );
 
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
@@ -877,24 +865,27 @@ async fn querytojson(info: web::Path<(String, String, String, String, String, St
             .body("Invalid API Key")
     }
 }
-async fn querytableschema(body: web::Path<(String,String,String)>)->impl Responder{
+async fn querytableschema(body: web::Path<(String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey(&body.0, &body.2);
     if valid.unwrap() == true {
         let mut connection = dbconnect::internalqueryconn();
 
         let database = &body.0;
         let tablename = &body.1;
-        let mut select=Vec::new();
+        let mut select = Vec::new();
         select.push("*");
-        let columnnamestmt=querytable::grab_columnnames_schema(tablename, database);
-        let column=querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
-        let columntypestmt=querytable::grab_columntypes_schema(tablename, database);
-        let columntype=querytable::exec_map(&mut connection, &columntypestmt.unwrap());
-        let constraintstmt=querytable::query_constraints(tablename, database);
-        let constraint=querytable::exec_map_tuple(&mut connection, &constraintstmt.unwrap());
+        let columnnamestmt = querytable::grab_columnnames_schema(tablename, database);
+        let column = querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
+        let columntypestmt = querytable::grab_columntypes_schema(tablename, database);
+        let columntype = querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+        let constraintstmt = querytable::query_constraints(tablename, database);
+        let constraint = querytable::exec_map_tuple(&mut connection, &constraintstmt.unwrap());
 
-
-        let json=querytable::query_table_schema(column.unwrap(), columntype.unwrap(), constraint.unwrap());
+        let json = querytable::query_table_schema(
+            column.unwrap(),
+            columntype.unwrap(),
+            constraint.unwrap(),
+        );
         //let queryresult = querytable::query_table_schema(
         //    &database,
         //    &tablename,
@@ -911,7 +902,7 @@ async fn querytableschema(body: web::Path<(String,String,String)>)->impl Respond
             .body("Invalid API Key")
     }
 }
-async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
+async fn querydatabase(body: web::Path<(String, String, String)>) -> impl Responder {
     let valid = connkey::search_apikey_admin(&body.2);
     if valid.unwrap() == true {
         let mut connection = dbconnect::internalqueryconn();
@@ -922,43 +913,45 @@ async fn querydatabase(body: web::Path<(String,String,String)>)->impl Responder{
         //turn into bool
         let expandbool: bool = expand.parse().unwrap();
 
-        let mut _json:Value=serde_json::json!({});
-        if expandbool==false{
-
-        
-            let mut select=Vec::new();
+        let mut _json: Value = serde_json::json!({});
+        if expandbool == false {
+            let mut select = Vec::new();
             select.push("*");
-            let tablestmt=querytable::grab_tablenames(database);
-            let tables=querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
-            _json=querytable::json_table_names(tables.unwrap(), database);
-        }
-        else{
-            let mut select=Vec::new();
+            let tablestmt = querytable::grab_tablenames(database);
+            let tables = querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
+            _json = querytable::json_table_names(tables.unwrap(), database);
+        } else {
+            let mut select = Vec::new();
             select.push("*");
-            let tablestmt=querytable::grab_tablenames(database);
-            let tablesresult=querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
-            let tables=tablesresult.unwrap();
-            let mut storage:Vec<(&str,Vec<String>, Vec<String>, Vec<(String,String)>)>=Vec::new();
-            for i in 0..tables.len(){
-                let columnnamestmt=querytable::grab_columnnames_schema(&tables[i], database);
-                let column=querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
-                let columntypestmt=querytable::grab_columntypes_schema(&tables[i], database);
-                let columntype=querytable::exec_map(&mut connection, &columntypestmt.unwrap());
-                let constraintsstmt=querytable::query_constraints(&tables[i], database);
-                let constraints=querytable::exec_map_tuple(&mut connection, &constraintsstmt.unwrap());
+            let tablestmt = querytable::grab_tablenames(database);
+            let tablesresult =
+                querytable::exec_grab_tablenames(&mut connection, &tablestmt.unwrap());
+            let tables = tablesresult.unwrap();
+            let mut storage: Vec<(&str, Vec<String>, Vec<String>, Vec<(String, String)>)> =
+                Vec::new();
+            for i in 0..tables.len() {
+                let columnnamestmt = querytable::grab_columnnames_schema(&tables[i], database);
+                let column = querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
+                let columntypestmt = querytable::grab_columntypes_schema(&tables[i], database);
+                let columntype = querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+                let constraintsstmt = querytable::query_constraints(&tables[i], database);
+                let constraints =
+                    querytable::exec_map_tuple(&mut connection, &constraintsstmt.unwrap());
 
-                
-                storage.push((&tables[i], column.unwrap(), columntype.unwrap(), constraints.unwrap()));
+                storage.push((
+                    &tables[i],
+                    column.unwrap(),
+                    columntype.unwrap(),
+                    constraints.unwrap(),
+                ));
             }
             println!("Storage: {:?}", storage);
-            _json=querytable::query_database_schema(storage, database);
-
+            _json = querytable::query_database_schema(storage, database);
         }
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body(_json.to_string())
-    }
-    else{
+    } else {
         HttpResponse::Ok()
             .content_type("text/json; charset=utf-8")
             .body("Invalid API Key")
@@ -1149,7 +1142,7 @@ mod tests {
             ("col1".to_string(), "50".to_string()),
             ("col2".to_string(), "Test Addition".to_string()),
         ];
-        let mut body=Vec::new();
+        let mut body = Vec::new();
         body.push(data);
         body.push(data2);
 
@@ -1172,7 +1165,7 @@ mod tests {
         //let mut validvec: Vec<bool> = Vec::new();
         //for i in 0..newrecord.table_fields.len() {
         //    validvec.push(false);
-        //    
+        //
         //    for j in 0..body.len() {
         //        if newrecord.table_fields[i] == body[j].0 {
         //            validvec[i] = true;
@@ -1191,7 +1184,7 @@ mod tests {
     fn test_update_record() {
         let database = "unit_tests";
         let table = "testinsertupdatedelete";
-        let mut datastore=Vec::new();
+        let mut datastore = Vec::new();
         let mut data: Vec<(String, String)> = Vec::new();
         data.push(("INTERNAL_PRIMARY_KEY".to_string(), "1".to_string()));
         data.push(("col1".to_string(), "50".to_string()));
@@ -1253,51 +1246,48 @@ mod tests {
     }
     #[test]
     fn test_protected_terms() {
-        let mut terms=Vec::new();
-        let term=String::from("INTERNAL_PRIMARY_KEY");
-        let term2=String::from("CONDITION");
-        let term3=String::from("INT");
-        let term4=String::from("VARCHAR");
-        let term5=String::from("CONDITION_RATING");
+        let mut terms = Vec::new();
+        let term = String::from("INTERNAL_PRIMARY_KEY");
+        let term2 = String::from("CONDITION");
+        let term3 = String::from("INT");
+        let term4 = String::from("VARCHAR");
+        let term5 = String::from("CONDITION_RATING");
 
         terms.push(term);
         terms.push(term2);
         terms.push(term3);
         terms.push(term4);
 
-        for term in terms.iter(){
-            let valid=tablecreate::validate_unprotected_term(term);
+        for term in terms.iter() {
+            let valid = tablecreate::validate_unprotected_term(term);
             assert_eq!(valid.0, false);
         }
 
-        let valid=tablecreate::validate_unprotected_term(&term5);
+        let valid = tablecreate::validate_unprotected_term(&term5);
         assert_eq!(valid.0, true);
-
-
-        
     }
-//    #[test]
-//    fn test_create_table() {
-//        let database = "unit_tests";
-//        let table = "testinsertupdatedelete";
-//        //use first column of tuple to get column names
-//        //use second column of tuple to get column types
-//        let body:web::Json<Value>=[("columns", "[{\"col1\":\"condition_rtg\",\"col2\":\"color\",\"col3\":\"part_number\",\"col4\":\"runtime\"}]"), ("types", "[{\"col1\":\"INT(11)\",\"col2\":\"VARCHAR(255)\",\"col3\":\"VARCHAR(255)\",\"col4\":\"INT(11)\"}]")];
-//        
-//        let body=body.into_inner();
-//
-//
-//        let mut json=Vec::new();
-//        json.push(body);
-//
-//        //
-//        let parsed=tablecreate::parse_json(body);
-//        let statement = tablecreate::create_table_web(database, table, &parsed.0, &parsed.1);
-//        assert_eq!(
-//            statement.unwrap(),
-//            String::from("CREATE TABLE unit_tests.testinsertupdatedelete (INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, condition_rtg INT(11), color VARCHAR(255), part_number VARCHAR(255), runtime INT(11))")
-//        );
-//    }
-//} 
-//
+    //    #[test]
+    //    fn test_create_table() {
+    //        let database = "unit_tests";
+    //        let table = "testinsertupdatedelete";
+    //        //use first column of tuple to get column names
+    //        //use second column of tuple to get column types
+    //        let body:web::Json<Value>=[("columns", "[{\"col1\":\"condition_rtg\",\"col2\":\"color\",\"col3\":\"part_number\",\"col4\":\"runtime\"}]"), ("types", "[{\"col1\":\"INT(11)\",\"col2\":\"VARCHAR(255)\",\"col3\":\"VARCHAR(255)\",\"col4\":\"INT(11)\"}]")];
+    //
+    //        let body=body.into_inner();
+    //
+    //
+    //        let mut json=Vec::new();
+    //        json.push(body);
+    //
+    //        //
+    //        let parsed=tablecreate::parse_json(body);
+    //        let statement = tablecreate::create_table_web(database, table, &parsed.0, &parsed.1);
+    //        assert_eq!(
+    //            statement.unwrap(),
+    //            String::from("CREATE TABLE unit_tests.testinsertupdatedelete (INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, condition_rtg INT(11), color VARCHAR(255), part_number VARCHAR(255), runtime INT(11))")
+    //        );
+    //    }
+    //}
+    //
 }

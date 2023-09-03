@@ -30,7 +30,7 @@ pub fn create_database(database_name: &str) {
     let _ = connkey::insert_apikey(database_name.to_string(), hash);
 }
 
-pub fn create_databaseweb(database: &str)->String {
+pub fn create_databaseweb(database: &str) -> String {
     //let mut conn = mysql::Conn::new("mysql://kylelocal:kcb@127.0.0.1:3306/").unwrap();
     let mut conn = dbconnect::internalqueryconn();
     let dbname = String::from(database);
