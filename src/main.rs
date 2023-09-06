@@ -32,7 +32,7 @@ pub mod update;
 #[actix_web::main]
 async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
-    args.push_str(":8080");
+    args.push_str(":6969");
     //let pword=std::env::args().nth(2).unwrap();
 
     let secretkey = cookie::Key::generate();
