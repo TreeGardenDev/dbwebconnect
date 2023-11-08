@@ -373,7 +373,7 @@ pub fn json_table_names(queryresult: Vec<String>, database: &str) -> serde_json:
     for x in 0..queryresult.len() {
         let mut jsonarray = json!({});
         jsonarray["table_name"] = queryresult[x].clone().into();
-        jsonarray["table_schema"] = database.clone().into();
+        jsonarray["table_schema"] = database.into();
         jsondata[&x.to_string()] = jsonarray;
     }
     jsondata
@@ -385,8 +385,8 @@ pub fn query_database_schema(
     let mut jsondata = json!({});
     for x in 0..tablecoltypestorage.len() {
         let mut jsonarray = json!({});
-        jsonarray["table_name"] = tablecoltypestorage[x].0.clone().into();
-        jsonarray["table_schema"] = database.clone().into();
+        jsonarray["table_name"] = tablecoltypestorage[x].0.into();
+        jsonarray["table_schema"] = database.into();
         jsonarray["columns"] = tablecoltypestorage[x].1.clone().into();
         jsonarray["types"] = tablecoltypestorage[x].2.clone().into();
         //grab first string in tuple
