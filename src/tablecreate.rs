@@ -58,10 +58,10 @@ pub fn create_table_web(
         //
 
         if column_types[i].1.get(0..7) == Some("VARCHAR") {
-            query.push_str(" DEFAULT \"\" ");
+            query.push_str(" DEFAULT \"\"");
         }
         if column_types[i].1.get(0..3) == Some("INT") {
-            query.push_str(" DEFAULT 0 ");
+            query.push_str(" DEFAULT 0");
         }
 
         query.push_str(", ");
