@@ -1,6 +1,7 @@
 use crate::Reader;
 
 pub fn read_fields(file: &String) -> Vec<String> {
+    
     //fn read_csv() ->Vec<Data> {
 
     let rdr = Reader::from_path(file);
