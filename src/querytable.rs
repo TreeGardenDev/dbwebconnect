@@ -372,9 +372,11 @@ pub fn json_table_names(queryresult: Vec<String>, database: &str) -> serde_json:
     let mut jsondata = json!({});
     for x in 0..queryresult.len() {
         let mut jsonarray = json!({});
+
         jsonarray["table_name"] = queryresult[x].clone().into();
+        let table = queryresult[x].clone();
         jsonarray["table_schema"] = database.into();
-        jsondata[&x.to_string()] = jsonarray;
+        jsondata[&table.to_string()] = jsonarray;
     }
     jsondata
 }
@@ -386,6 +388,7 @@ pub fn query_database_schema(
     for x in 0..tablecoltypestorage.len() {
         let mut jsonarray = json!({});
         jsonarray["table_name"] = tablecoltypestorage[x].0.into();
+        let table = tablecoltypestorage[x].0;
         jsonarray["table_schema"] = database.into();
         jsonarray["columns"] = tablecoltypestorage[x].1.clone().into();
         jsonarray["types"] = tablecoltypestorage[x].2.clone().into();
@@ -395,7 +398,7 @@ pub fn query_database_schema(
         jsonarray["constraints"] = constraintname.clone().into();
         jsonarray["constraint_column"] = constraitcol.clone().into();
 
-        jsondata[&x.to_string()] = jsonarray;
+        jsondata[table.to_string()] = jsonarray;
     }
     jsondata
 }
