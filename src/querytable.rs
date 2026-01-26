@@ -38,12 +38,11 @@ pub fn exec_map(
     #[derive(QueryableByName)]
     struct SingleString {
         #[diesel(sql_type = Text)]
-        #[allow(non_snake_case)]
-        COLUMN_NAME: String,
+        column_name: String,
     }
 
     let rows: Vec<SingleString> = sql_query(query).load(conn)?;
-    Ok(rows.into_iter().map(|r| r.COLUMN_NAME).collect())
+    Ok(rows.into_iter().map(|r| r.column_name).collect())
 }
 
 pub fn exec_map_tuple(
@@ -53,34 +52,35 @@ pub fn exec_map_tuple(
     #[derive(QueryableByName)]
     struct TwoStrings {
         #[diesel(sql_type = Text)]
-        #[allow(non_snake_case)]
-        COLUMN_NAME: String,
+        column_name: String,
         #[diesel(sql_type = Text)]
-        #[allow(non_snake_case)]
-        CONSTRAINT_NAME: String,
+        constraint_name: String,
     }
 
     let rows: Vec<TwoStrings> = sql_query(query).load(conn)?;
     Ok(rows
         .into_iter()
-        .map(|r| (r.COLUMN_NAME, r.CONSTRAINT_NAME))
+        .map(|r| (r.column_name, r.constraint_name))
         .collect())
 }
 pub fn grab_columntypes(
     table: &str,
     database: &str,
 ) -> std::result::Result<String, Box<dyn std::error::Error>> {
-    let mut query =
-        String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    // Postgres: use data_type and alias it to column_name so exec_map can
+    // deserialize it with the SingleString { column_name } struct.
+    let mut query = String::from(
+        "SELECT data_type AS column_name FROM information_schema.columns WHERE table_schema = '",
+    );
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
     query.push_str("'");
-    query.push_str("And COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
-    query.push_str("And COLUMN_NAME != 'GPS_ID'");
-    query.push_str("And COLUMN_NAME != 'X_COORD'");
-    query.push_str("And COLUMN_NAME != 'Y_COORD'");
-    query.push_str("And COLUMN_NAME != 'Attachment'");
+    query.push_str(" AND column_name != 'internal_primary_key'");
+    query.push_str(" AND column_name != 'gps_id'");
+    query.push_str(" AND column_name != 'x_coord'");
+    query.push_str(" AND column_name != 'y_coord'");
+    query.push_str(" AND column_name != 'attachment'");
 
     Ok(query)
 }
@@ -89,8 +89,9 @@ pub fn grab_all_columntypes(
     table: &str,
     database: &str,
 ) -> std::result::Result<String, Box<dyn std::error::Error>> {
-    let mut query =
-        String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    let mut query = String::from(
+        "SELECT data_type AS column_name FROM information_schema.columns WHERE table_schema = '",
+    );
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
@@ -102,8 +103,9 @@ pub fn grab_columntypes_schema(
     table: &str,
     database: &str,
 ) -> std::result::Result<String, Box<dyn std::error::Error>> {
-    let mut query =
-        String::from("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '");
+    let mut query = String::from(
+        "SELECT data_type AS column_name FROM information_schema.columns WHERE table_schema = '",
+    );
     query.push_str(database);
     query.push_str("' AND TABLE_NAME = '");
     query.push_str(table);
@@ -392,12 +394,11 @@ pub fn exec_grab_tablenames(
     #[derive(QueryableByName)]
     struct SingleStringRow {
         #[diesel(sql_type = Text)]
-        #[allow(non_snake_case)]
-        TABLE_NAME: String,
+        table_name: String,
     }
 
     let rows: Vec<SingleStringRow> = sql_query(query).load(conn)?;
-    Ok(rows.into_iter().map(|r| r.TABLE_NAME).collect())
+    Ok(rows.into_iter().map(|r| r.table_name).collect())
 }
 
 pub fn json_table_names(queryresult: Vec<String>, database: &str) -> serde_json::Value {

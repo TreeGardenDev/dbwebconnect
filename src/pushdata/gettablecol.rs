@@ -10,17 +10,19 @@ pub fn get_table_col(
     database_name: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut querystring: String =
-        String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
+	String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
     querystring.push_str(database_name.to_string().as_str());
     querystring.push_str("' AND TABLE_NAME='");
     //testcsv' AND TABLE_NAME='");
     querystring.push_str(table_name.to_string().as_str());
     querystring.push_str("'");
-    querystring.push_str(" and COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
-    querystring.push_str(" and COLUMN_NAME != 'GPS_ID'");
-    querystring.push_str(" and COLUMN_NAME != 'X_COORD'");
-    querystring.push_str(" and COLUMN_NAME != 'Y_COORD'");
-    querystring.push_str(" and COLUMN_NAME != 'Attachment'");
+    // In Postgres, unquoted identifiers are stored lowercased in information_schema,
+    // so filter on the lowercased names of our internal/system columns.
+    querystring.push_str(" and COLUMN_NAME != 'internal_primary_key'");
+    querystring.push_str(" and COLUMN_NAME != 'gps_id'");
+    querystring.push_str(" and COLUMN_NAME != 'x_coord'");
+    querystring.push_str(" and COLUMN_NAME != 'y_coord'");
+    querystring.push_str(" and COLUMN_NAME != 'attachment'");
     #[derive(QueryableByName)]
     struct ColName {
         #[diesel(sql_type = Text)]

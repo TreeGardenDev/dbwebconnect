@@ -20,6 +20,7 @@ pub mod querytable;
 pub mod relationships;
 pub mod tablecreate;
 pub mod update;
+pub mod auth;
 
 // Global database connection type, backed by Diesel Postgres
 pub type PooledConn = PgConnection;
@@ -47,6 +48,7 @@ async fn main() {
         //        secretkey.clone(),
         //    ))
         App::new()
+            .app_data(web::Data::new(auth::AppState::from_env()))
             //session cookie
             //.app_data(TempFileConfig::default().directory("./tmp"))
             //force users to start at / before going to /main
@@ -54,6 +56,13 @@ async fn main() {
                 web::resource("/")
                     .route(web::get().to(getinitializeconnect))
                     .route(web::post().to(postinitializeconnect)),
+            )
+            .route("/auth/register", web::post().to(auth::register))
+            .route("/auth/login", web::post().to(auth::login))
+            .route("/admin/users", web::get().to(auth::list_users))
+            .route(
+                "/admin/users/schemas",
+                web::post().to(auth::update_user_schemas),
             )
             .route("/health", web::get().to(health))
             //.route("/main", web::get().to(index))
@@ -152,23 +161,12 @@ async fn main() {
         .unwrap();
 }
 async fn postinitializeconnect(form: web::Form<ApiKey>) -> impl Responder {
-    let valid = connkey::search_apikey_admin(&form.apikey).unwrap();
-    if valid == true {
-        //let _=initconnect::postdatabaseconnection(form.into_inner());
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("{\"success\":\"true\"}")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("{\"error\":\"Invalid API Key\"}")
-    }
-    //let _=initconnect::postdatabaseconnection(form.into_inner());
-    //post to appdata from here
-
-    // HttpResponse::Ok()
-    //     .content_type("text/html; charset=utf-8")
-    //     .body(include_str!("page.html"))
+    // Legacy endpoint: API-key based initialization is deprecated.
+    // Kept only to avoid breaking old clients; always returns an error.
+    let _ = form; // suppress unused warning
+    HttpResponse::Gone()
+        .content_type("application/json; charset=utf-8")
+        .body("{\"error\":\"deprecated_endpoint_use_jwt_auth\"}")
 }
 async fn getinitializeconnect() -> impl Responder {
     let html = initconnect::getpagehtml();
@@ -262,39 +260,51 @@ async fn health() -> impl Responder {
 //        .body(include_str!("pages/methodsuccess.html"))
 //}
 async fn createrelationshipweb(
+    auth: auth::Authenticated,
     info: web::Path<(String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.1);
-    if valid.unwrap() == true {
-        let body = body.into_inner();
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            let parsed = createrelationship::parse_json(value.to_string());
-            println!("{:?}", parsed);
-            data.push((key.to_string(), parsed));
-        }
-        let relationship = createrelationship::createrelationshipfromweb(&info.0, data);
-        let _ = createrelationship::commitrelationshipfromweb(relationship);
-
-        HttpResponse::Ok()
+    let database = &info.0;
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Status: 200 Relationship Created")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key")
+            .body("Admin role required");
     }
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
+    let body = body.into_inner();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        let parsed = createrelationship::parse_json(value.to_string());
+        println!("{:?}", parsed);
+        data.push((key.to_string(), parsed));
+    }
+    let relationship = createrelationship::createrelationshipfromweb(&info.0, data);
+    let _ = createrelationship::commitrelationshipfromweb(relationship);
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Relationship Created")
 }
 async fn createrelationshipparentweb(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.4);
-    if valid.unwrap() == false {
-        return HttpResponse::Ok()
+    let database = &info.0;
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key");
+            .body("Admin role required");
+    }
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
     }
 
     let body = body.into_inner();
@@ -329,67 +339,67 @@ async fn createrelationshipparentweb(
         .body("Status: 200 Relationship Created")
 }
 async fn deleterecord(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap() == true {
-        let mut conn = dbconnect::internalqueryconnapikey();
-        let body = body.into_inner();
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            data.push((key.to_string(), value.to_string()));
-        }
-        let database = &info.0;
-        let table = &info.1;
-        //let parsed_json=tablecreate::parse_json(data);
-        let statement = delete::deleterecord(&database, &table, data);
-        let _ = delete::exec_statement(&mut conn, &statement.unwrap());
-
-        HttpResponse::Ok()
+    let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Status: 200 Record Deleted")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key")
+            .body("Forbidden for this database");
     }
+
+    let mut conn = dbconnect::internalqueryconn();
+    let body = body.into_inner();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(), value.to_string()));
+    }
+    let table = &info.1;
+    let statement = delete::deleterecord(&database, &table, data);
+    let _ = delete::exec_statement(&mut conn, &statement.unwrap());
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Status: 200 Record Deleted")
 }
 async fn getkey(info: web::Path<(String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey_admin(&info.1);
-    if valid.unwrap() == true {
-        let stmt = connkey::generate_apikey(&info.0).unwrap();
-        let key = connkey::execute_apikey(&stmt);
-        let retrnvalue = key.unwrap();
-        let respnse = "{\"Status\": \"200\", \"APIKey\": \"".to_owned() + &retrnvalue + "\"}";
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body(respnse)
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key")
-    }
+    // Legacy endpoint: API-key issuance is deprecated in favor of JWT auth.
+    let _ = info; // suppress unused warning
+    HttpResponse::Gone()
+        .content_type("application/json; charset=utf-8")
+        .body("{\"error\":\"deprecated_endpoint_use_jwt_auth\"}")
 }
 
 async fn createtableweb(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
     println!("{:?}", &info.3);
     println!("{:?}", &info.0);
-    let valid = connkey::search_apikey(&info.0, &info.3);
-    if valid.unwrap() == true {
-        let mut conn = dbconnect::internalqueryconnapikey();
-        let body = body.into_inner();
-        let mut data = Vec::new();
-        for (key, value) in body.as_object().unwrap().iter() {
-            data.push((key.to_string(), value.to_string()));
-        }
-        println!("{:?}", data);
-        let database = &info.0;
-        let table = &info.1;
-        let gps = &info.2;
+    let database = &info.0;
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Admin role required");
+    }
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
+    let mut conn = dbconnect::internalqueryconn();
+    let body = body.into_inner();
+    let mut data = Vec::new();
+    for (key, value) in body.as_object().unwrap().iter() {
+        data.push((key.to_string(), value.to_string()));
+    }
+    println!("{:?}", data);
+    let table = &info.1;
+    let gps = &info.2;
         //convert gps to bool
         let gps = gps.parse::<bool>().unwrap();
 
@@ -425,25 +435,27 @@ async fn createtableweb(
         //    &parsed_json.1,
         //);
 
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Table Created")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
-    }
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Table Created")
 }
 async fn droptableweb(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap() == false {
-        return HttpResponse::Ok()
+    let database = &info.0;
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key");
+            .body("Admin role required");
     }
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
     let mut conn = dbconnect::internalqueryconn();
     let body = body.into_inner();
     //let mut data=Vec::new();
@@ -468,14 +480,17 @@ async fn droptableweb(
         .content_type("text/json; charset=utf-8")
         .body("Table Dropped")
 }
-async fn retrieveattachment(info: web::Path<(String, String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.3);
-    if valid.unwrap() == false {
-        return HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key");
-    }
+async fn retrieveattachment(
+    auth: auth::Authenticated,
+    info: web::Path<(String, String, String, String)>,
+) -> impl Responder {
     let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
     println!("{:?}", &info.1);
     let table = &info.1;
     println!("{:?}", &info.2);
@@ -502,14 +517,15 @@ async fn retrieveattachment(info: web::Path<(String, String, String, String)>) -
 //grab attachment to put in s3 bucket
 
 async fn dbinsertattachment(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String)>,
     body: web::Json<Value>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if !valid.unwrap() {
-        return HttpResponse::Ok()
+    let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Status: 400 Invalid API Key");
+            .body("Forbidden for this database");
     }
     //decode json
     let body = body.into_inner();
@@ -547,48 +563,46 @@ async fn dbinsertattachment(
 }
 
 async fn dbinsert(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String)>,
     body: web::Json<Vec<Value>>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap() == true {
-        let body = body.into_inner();
-        let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
-        for record in body.iter() {
-            let mut data = Vec::new();
-            for (key, value) in record.as_object().unwrap().iter() {
-                data.push((key.to_string(), value.to_string()));
-            }
-            storagevec.push(data);
-        }
-        println!("{:?}", storagevec);
-
-        let database = &info.0;
-        let table = &info.1;
-        //let apikey=&info.2;
-
-        let mut newtable = insertrecords::TableDef::new();
-        newtable.populate(&table, &database);
-        let valid = newtable.compare_fields(&storagevec);
-
-        if valid {
-            let stmt = newtable.insert(&storagevec, &table, &database);
-            let _ = insertrecords::exec_insert(stmt);
-            //println!("{:?}", stmt);
-        } else {
-            return HttpResponse::Ok()
-                .content_type("text/json; charset=utf-8")
-                .body("Invalid Data");
-        }
-
-        HttpResponse::Ok()
+    let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Insert Successful")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
+            .body("Forbidden for this database");
     }
+
+    let body = body.into_inner();
+    let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
+    for record in body.iter() {
+        let mut data = Vec::new();
+        for (key, value) in record.as_object().unwrap().iter() {
+            data.push((key.to_string(), value.to_string()));
+        }
+        storagevec.push(data);
+    }
+    println!("{:?}", storagevec);
+
+    let table = &info.1;
+
+    let mut newtable = insertrecords::TableDef::new();
+    newtable.populate(&table, &database);
+    let valid = newtable.compare_fields(&storagevec);
+
+    if valid {
+        let stmt = newtable.insert(&storagevec, &table, &database);
+        let _ = insertrecords::exec_insert(stmt);
+    } else {
+        return HttpResponse::Ok()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid Data");
+    }
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Insert Successful")
 }
 //async fn dbinsert_gps(
 //    info: web::Path<(String, String, String)>,
@@ -636,39 +650,38 @@ async fn dbinsert(
 //    }
 //}
 async fn dbupdaterecord(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String)>,
     body: web::Json<Vec<Value>>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap() == true {
-        let mut conn = dbconnect::internalqueryconnapikey();
-        let body = body.into_inner();
-        let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
-        //let mut data = Vec::new();
-        for record in body.iter() {
-            let mut data = Vec::new();
-            for (key, value) in record.as_object().unwrap().iter() {
-                let strkey = key.as_str();
-                let strvalue = value.as_str().unwrap();
-                data.push((strkey.to_string(), strvalue.to_string()));
-            }
-            storagevec.push(data);
-        }
-        let database = &info.0;
-        let table = &info.1;
-        let statement = update::updaterecord(database, table, storagevec);
-        for statement in statement.iter() {
-            let _ = update::executeupdaterecord(&mut conn, &statement);
-        }
-
-        HttpResponse::Ok()
+    let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body("Update Successful")
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
+            .body("Forbidden for this database");
     }
+
+    let mut conn = dbconnect::internalqueryconn();
+    let body = body.into_inner();
+    let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
+    for record in body.iter() {
+        let mut data = Vec::new();
+        for (key, value) in record.as_object().unwrap().iter() {
+            // Store all values as strings (numbers, bools, etc. will be
+            // stringified) and let the SQL builder quote/cast appropriately.
+            data.push((key.to_string(), value.to_string()));
+        }
+        storagevec.push(data);
+    }
+    let table = &info.1;
+    let statement = update::updaterecord(database, table, storagevec);
+    for statement in statement.iter() {
+        let _ = update::executeupdaterecord(&mut conn, &statement);
+    }
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body("Update Successful")
 }
 
 //async fn createnewdb(form: web::Form<NewDataBase>) -> impl Responder {
@@ -677,23 +690,25 @@ async fn dbupdaterecord(
 //        .content_type("text/html; charset=utf-8")
 //        .body(include_str!("pages/methodsuccess.html"))
 //}
-async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey_admin(&info.1);
-    if valid.unwrap() == true {
-        let database_name = &info.0;
-        //let apikey=&info.1;
-        let key = createdatabase::create_databaseweb(database_name);
-        let encoded = BASE64.encode(key.as_bytes());
-        let response = serde_json::json!(encoded);
-
-        HttpResponse::Ok()
+async fn createnewdbweb(
+    auth: auth::Authenticated,
+    info: web::Path<(String, String)>,
+) -> impl Responder {
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body(response.to_string())
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Err 500: Not a valid API Key")
+            .body("Admin role required");
     }
+
+    // Legacy admin API key in the path is ignored in favor of JWT-based admin checks.
+    let database_name = &info.0;
+    let key = createdatabase::create_databaseweb(database_name);
+    let encoded = BASE64.encode(key.as_bytes());
+    let response = serde_json::json!(encoded);
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(response.to_string())
 }
 
 //async fn createtable(MultipartForm(form): MultipartForm<CreateTable>) -> impl Responder {
@@ -782,15 +797,18 @@ async fn createnewdbweb(info: web::Path<(String, String)>) -> impl Responder {
 //        .content_type("text/json; charset=utf-8")
 //        .body("Success 200: Query Executed")
 //}
-async fn queryall(info: web::Path<(String, String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.3);
-    if valid.unwrap() == false {
-        return HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Err 400: Not a valid API Key");
-    }
-    let mut connection = dbconnect::internalqueryconn();
+async fn queryall(
+    auth: auth::Authenticated,
+    info: web::Path<(String, String, String, String)>,
+) -> impl Responder {
     let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
+    let mut connection = dbconnect::internalqueryconn();
     let table = &info.1;
     let depth = &info.2;
     let depth: i32 = depth.parse().unwrap();
@@ -809,15 +827,18 @@ async fn queryall(info: web::Path<(String, String, String, String)>) -> impl Res
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-async fn queryrelationship(info: web::Path<(String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.2);
-    if valid.unwrap() == false {
-        return HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Err 400: Not a valid API Key");
-    }
-    let mut connection = dbconnect::internalqueryconn();
+async fn queryrelationship(
+    auth: auth::Authenticated,
+    info: web::Path<(String, String, String)>,
+) -> impl Responder {
     let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
+
+    let mut connection = dbconnect::internalqueryconn();
     let relationship = &info.1;
 
     let relationshipvec: Vec<relationships::RelationshipBuilder> =
@@ -864,76 +885,81 @@ async fn queryrelationship(info: web::Path<(String, String, String)>) -> impl Re
         .body(json.to_string())
 }
 async fn querytojson(
+    auth: auth::Authenticated,
     info: web::Path<(String, String, String, String, String, String)>,
 ) -> impl Responder {
-    let valid = connkey::search_apikey(&info.0, &info.5);
-    if valid.unwrap() == true {
-        let mut connection = dbconnect::internalqueryconn();
-
-        let database = &info.0;
-        let tablename = &info.1;
-        let select = &info.2;
-        let whereclause = &info.3;
-        let expanded = &info.4;
-        let expbool = expanded.parse::<bool>().unwrap();
-        //select is comma separated list of columns
-        //separate select into vector
-        let selectvec: Vec<&str> = select.split(',').collect();
-        let select2 = selectvec.clone();
-
-        for i in 0..selectvec.len() {
-            println!("{}", selectvec[i]);
-        }
-
-        //let apikey=&info.4;
-
-        let queryresult = querytable::query_tables(
-            &tablename,
-            &mut connection,
-            &whereclause,
-            &database,
-            selectvec,
-            expbool,
-        );
-        let json = querytable::build_json(
-            queryresult,
-            &database,
-            &tablename,
-            &mut connection,
-            select2,
-            expbool,
-        );
-
-        HttpResponse::Ok()
+    let database = &info.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
-            .body(json.to_string())
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
+            .body("Forbidden for this database");
     }
+
+    let mut connection = dbconnect::internalqueryconn();
+
+    let tablename = &info.1;
+    let select = &info.2;
+    let whereclause = &info.3;
+    let expanded = &info.4;
+    let expbool = expanded.parse::<bool>().unwrap();
+    //select is comma separated list of columns
+    //separate select into vector
+    let selectvec: Vec<&str> = select.split(',').collect();
+    let select2 = selectvec.clone();
+
+    for i in 0..selectvec.len() {
+        println!("{}", selectvec[i]);
+    }
+
+    let queryresult = querytable::query_tables(
+        &tablename,
+        &mut connection,
+        &whereclause,
+        &database,
+        selectvec,
+        expbool,
+    );
+    let json = querytable::build_json(
+        queryresult,
+        &database,
+        &tablename,
+        &mut connection,
+        select2,
+        expbool,
+    );
+
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
 }
-async fn querytableschema(body: web::Path<(String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey(&body.0, &body.2);
-    if valid.unwrap() == true {
-        let mut connection = dbconnect::internalqueryconn();
+async fn querytableschema(
+    auth: auth::Authenticated,
+    body: web::Path<(String, String, String)>,
+) -> impl Responder {
+    let database = &body.0;
+    if !auth.can_access_schema(database) {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Forbidden for this database");
+    }
 
-        let database = &body.0;
-        let tablename = &body.1;
-        let mut select = Vec::new();
-        select.push("*");
-        let columnnamestmt = querytable::grab_columnnames_schema(tablename, database);
-        let column = querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
-        let columntypestmt = querytable::grab_columntypes_schema(tablename, database);
-        let columntype = querytable::exec_map(&mut connection, &columntypestmt.unwrap());
-        let constraintstmt = querytable::query_constraints(tablename, database);
-        let constraint = querytable::exec_map_tuple(&mut connection, &constraintstmt.unwrap());
+    let mut connection = dbconnect::internalqueryconn();
 
-        let json = querytable::query_table_schema(
-            column.unwrap(),
-            columntype.unwrap(),
-            constraint.unwrap(),
-        );
+    let tablename = &body.1;
+    let mut select = Vec::new();
+    select.push("*");
+    let columnnamestmt = querytable::grab_columnnames_schema(tablename, database);
+    let column = querytable::exec_map(&mut connection, &columnnamestmt.unwrap());
+    let columntypestmt = querytable::grab_columntypes_schema(tablename, database);
+    let columntype = querytable::exec_map(&mut connection, &columntypestmt.unwrap());
+    let constraintstmt = querytable::query_constraints(tablename, database);
+    let constraint = querytable::exec_map_tuple(&mut connection, &constraintstmt.unwrap());
+
+    let json = querytable::query_table_schema(
+        column.unwrap(),
+        columntype.unwrap(),
+        constraint.unwrap(),
+    );
         //let queryresult = querytable::query_table_schema(
         //    &database,
         //    &tablename,
@@ -941,21 +967,23 @@ async fn querytableschema(body: web::Path<(String, String, String)>) -> impl Res
         //let json =
         //    querytable::build_jsonschema(queryresult, &database, &tablename, &mut connection);
 
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body(json.to_string())
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
-    }
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(json.to_string())
 }
-async fn querydatabase(body: web::Path<(String, String, String)>) -> impl Responder {
-    let valid = connkey::search_apikey_admin(&body.2);
-    if valid.unwrap() == true {
-        let mut connection = dbconnect::internalqueryconn();
+async fn querydatabase(
+    auth: auth::Authenticated,
+    body: web::Path<(String, String, String)>,
+) -> impl Responder {
+    if auth.role != "admin" {
+        return HttpResponse::Forbidden()
+            .content_type("text/json; charset=utf-8")
+            .body("Admin role required");
+    }
 
-        let database = &body.0;
+    let mut connection = dbconnect::internalqueryconn();
+
+    let database = &body.0;
         //expand will be true or false
         let expand = &body.1;
         //turn into bool
@@ -996,14 +1024,9 @@ async fn querydatabase(body: web::Path<(String, String, String)>) -> impl Respon
             println!("Storage: {:?}", storage);
             _json = querytable::query_database_schema(storage, database);
         }
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body(_json.to_string())
-    } else {
-        HttpResponse::Ok()
-            .content_type("text/json; charset=utf-8")
-            .body("Invalid API Key")
-    }
+    HttpResponse::Ok()
+        .content_type("text/json; charset=utf-8")
+        .body(_json.to_string())
 }
 //async fn getcreate(form: web::Form<NewCsv>) -> impl Responder {
 //    let mut connection = dbconnect::database_connection(&form.database.to_string());

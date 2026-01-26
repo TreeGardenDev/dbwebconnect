@@ -23,7 +23,9 @@ impl ApiKey {
         }
     }
     pub fn populatekey(&mut self, database: String) {
-        let salt = std::env::args().nth(3).expect("no salt provided");
+        // Legacy API-key generation no longer relies on a CLI-provided salt.
+        // Use a fixed salt to avoid panics when no CLI args are present.
+        let salt = std::env::var("APIKEY_SALT").unwrap_or_else(|_| "legacy-salt".to_string());
         let mut apikey = String::new();
         let mut ctx = Context::new(&SHA256);
         ctx.update(database.as_bytes());

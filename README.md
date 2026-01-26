@@ -115,6 +115,171 @@ If you prefer to run the Rust binary directly on your host while still using the
 
 The server will again be available on http://localhost:8080/.
 
+## JWT Authentication & Authorization
+
+The application now uses JSON Web Tokens (JWT) and a Postgres-backed users table instead of API keys for most database actions.
+
+### Secrets
+
+- The signing key is read from the `JWT_SECRET` environment variable.
+- In Docker, this is set for the `app` service in [docker-compose.yml](docker-compose.yml).
+- For local development, export it before running:
+
+   ```bash
+   export JWT_SECRET=change-me-in-prod
+   ```
+
+### User Registration
+
+- Endpoint: `POST /auth/register`
+- Body (JSON):
+
+   ```json
+   {
+      "email": "user@example.com",
+      "password": "at_least_8_chars",
+      "allowed_schemas": ["my_database_schema"]
+   }
+   ```
+
+- Behavior:
+   - The **first** user ever registered becomes an `admin`.
+   - All subsequent users are regular `user` accounts.
+   - `allowed_schemas` is optional; if omitted or empty, the user is allowed to access **all** schemas.
+
+### Login and Tokens
+
+- Endpoint: `POST /auth/login`
+- Body (JSON):
+
+   ```json
+   {
+      "email": "user@example.com",
+      "password": "at_least_8_chars"
+   }
+   ```
+
+- On success, you receive:
+
+   ```json
+   {
+      "status": "ok",
+      "token": "<JWT_TOKEN>"
+   }
+   ```
+
+- Use this token in the `Authorization` header for all protected endpoints:
+
+   ```http
+   Authorization: Bearer <JWT_TOKEN>
+   ```
+
+### Admin Endpoints
+
+The first registered user (role `admin`) can manage other users:
+
+- List users:
+   - `GET /admin/users`
+   - Requires an `Authorization: Bearer <admin token>` header.
+- Update which schemas a user can access:
+   - `POST /admin/users/schemas`
+   - Body (JSON):
+
+      ```json
+      {
+         "email": "user@example.com",
+         "allowed_schemas": ["schema1", "schema2"]
+      }
+      ```
+
+## Auth Behavior for Database Actions
+
+Most existing routes still keep their original URL shape (including `&apikey=...` in the path), but **the API key is now ignored**. Authorization is based solely on the JWT token and the user’s role/schemas.
+
+### Per-schema user actions
+
+These endpoints require a valid JWT and that the user is allowed to access the `{database}` schema (either explicitly via `allowed_schemas` or implicitly when the list is empty):
+
+- Insert records:
+   - `POST /insert/{database}&table={table}&apikey={ignored}`
+- Insert attachments:
+   - `POST /insertattachment/{database}&table={table}&apikey={ignored}`
+- Update records:
+   - `POST /updaterecord/{database}&table={table}&apikey={ignored}`
+- Delete records:
+   - `POST /deleterecord/{database}&table={table}&apikey={ignored}`
+- Query table data:
+   - `GET /query/{database}&table={table}&select={select}&where={where}&expand={expand}&apikey={ignored}`
+- Query table schema:
+   - `GET /querytableschema/{database}&table={table}&apikey={ignored}`
+- Query relationships and nested data:
+   - `GET /queryrelationship/{database}&relationship={relationship}&apikey={ignored}`
+   - `GET /queryall/{database}&table={table}&depth={depth}&apikey={ignored}`
+- Retrieve attachments:
+   - `GET /retrieveattachment/{database}&table={table}&id={id}&apikey={ignored}`
+
+All of the above must be called with:
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+If the token is missing/invalid, or the user is not allowed to access `{database}`, the server responds with HTTP 403.
+
+### Admin-only actions
+
+These operations require a JWT for a user whose role is `admin`:
+
+- Create tables:
+   - `POST /createtable/{database}&table={table}&gps={gps}&apikey={ignored}`
+- Drop tables:
+   - `POST /droptable/{database}&table={table}&apikey={ignored}`
+- Create relationships:
+   - `POST /relationship/{database}&apikey={ignored}`
+   - `POST /relateparent/{database}&parent_table={parent_table}&child_table={child_table}&relationship_name={relationship_name}&apikey={ignored}`
+- Introspect database schema:
+   - `GET /querydatabase/{database}&expand={expand}&apikey={ignored}`
+- Create a new logical database/schema:
+   - `POST /createdatabase/{database}&apikey={ignored}`
+
+Again, the `apikey` path segment is ignored; only the JWT and the user’s role matter.
+
+## Example Frontend Flow (Auth Perspective)
+
+From a frontend or API client, a typical flow to insert/query data is:
+
+1. **Register or obtain an account**
+    - `POST /auth/register` with email/password (first user becomes admin).
+    - An admin can later set `allowed_schemas` for other users via `/admin/users/schemas`.
+
+2. **Login to get a token**
+    - `POST /auth/login` with email/password.
+    - Store the returned `token` on the client (e.g., in memory or secure storage).
+
+3. **Call database endpoints with the token**
+    - Example: insert into table `my_table` in schema `my_schema`:
+
+       ```http
+       POST /insert/my_schema&table=my_table&apikey=ignored
+       Authorization: Bearer <JWT_TOKEN>
+       Content-Type: application/json
+
+       [
+          { "col1": "value1", "col2": 123 }
+       ]
+       ```
+
+    - Example: query that same table:
+
+       ```http
+       GET /query/my_schema&table=my_table&select=*&where=1=1&expand=false&apikey=ignored
+       Authorization: Bearer <JWT_TOKEN>
+       ```
+
+4. **Rely on roles/schemas for enforcement**
+    - If the JWT belongs to a user who does **not** have access to `my_schema`, the request will be rejected with 403.
+    - Admins (role `admin`) can call the admin-only endpoints to inspect or manage schemas, tables, and relationships.
+
 ## Architecture & Migration Notes
 
 - The project was originally built against MariaDB/MySQL using the `mysql` crate.
