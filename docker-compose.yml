@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
       - ./sql-scripts:/docker-entrypoint-initdb.d
 
   app:
@@ -24,4 +24,5 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
-      - PWD=${PASSWORD}
+volumes:
+  db_data:
