@@ -1,6 +1,7 @@
+use crate::PooledConn;
+use diesel::prelude::*;
+use diesel::sql_query;
 use serde::{Deserialize, Serialize};
-//use serde_json::Result;
-use mysql::{*, prelude::Queryable};
 
 #[derive(Serialize,Debug, Clone, Deserialize)]
 pub struct RelationshipBuilder{
@@ -30,7 +31,16 @@ impl RelationshipBuilder{
     }
     pub fn check_relationship_name(&self, conn: &mut PooledConn)->bool{
         let stmt = format!("SELECT relationship FROM Relationships.relationships WHERE relationship='{}'", self.relationship_name);
-        let result:Vec<String> = conn.query_map(stmt, |relationship| relationship).unwrap();
+
+        #[derive(QueryableByName)]
+        struct RelRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            relationship: String,
+        }
+
+        let result: Vec<RelRow> = sql_query(stmt)
+            .load(conn)
+            .expect("Failed to query relationships");
         if result.len() > 0{
             println!("Relationship Name Already Exists");
             return false;
@@ -49,15 +59,42 @@ pub fn create_relationship_stmt(relationship: &RelationshipBuilder) -> String{
     stmt
 }
 pub fn execute_relationship_stmt(stmt: &str, conn: &mut PooledConn){
-    let _=conn.query_drop(stmt);
+    let _ = sql_query(stmt)
+        .execute(conn)
+        .expect("Failed to execute relationship insert");
 }
 pub fn query_relationships(conn: &mut PooledConn, relationship_name:&str)->Vec<RelationshipBuilder>{
     let mut stmt = String::from("SELECT targeted_database, parent_table, child_table, where_clause, relationship FROM Relationships.relationships");
     stmt.push_str(" WHERE relationship='");
     stmt.push_str(relationship_name);
     stmt.push_str("'");
-    
-    let result:Vec<RelationshipBuilder> = conn.query_map(stmt, |(targeted_database, parent_table, child_table, where_clause, relationship)| RelationshipBuilder{database: targeted_database, parent_table, child_table, where_clause, relationship_name: relationship}).unwrap();
 
-    result
+    #[derive(QueryableByName)]
+    struct RelFullRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        targeted_database: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        parent_table: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        child_table: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        where_clause: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        relationship: String,
+    }
+
+    let rows: Vec<RelFullRow> = sql_query(stmt)
+        .load(conn)
+        .expect("Failed to query relationship rows");
+
+    rows
+        .into_iter()
+        .map(|r| RelationshipBuilder {
+            database: r.targeted_database,
+            parent_table: r.parent_table,
+            child_table: r.child_table,
+            where_clause: r.where_clause,
+            relationship_name: r.relationship,
+        })
+        .collect()
 }

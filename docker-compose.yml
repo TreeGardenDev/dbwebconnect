@@ -1,20 +1,26 @@
-version: '1'
+version: '3.8'
 
 services:
   db:
-    image: mariadb
+    image: postgres:16-alpine
+    container_name: hosted_database
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: secret
-    volumes:
-      - ./data:/var/lib/mysql
+      - POSTGRES_USER=api_user
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=api_main
     ports:
-      - "3306:3306"
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./sql-scripts:/docker-entrypoint-initdb.d
 
   app:
-    build: .
+    build: ./
     ports:
-      - "8000:8000"
+      - "8080:8080"
     depends_on:
       - db
     environment:
-      PWD: secret
+      - DATABASE_URL=postgres://api_user:secret@db:5432/api_main
+      - PWD=secret

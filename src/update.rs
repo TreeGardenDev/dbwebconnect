@@ -1,4 +1,6 @@
-use mysql::{prelude::Queryable, *};
+use diesel::prelude::*;
+use diesel::sql_query;
+use crate::PooledConn;
 pub fn updaterecord(database: &str, table: &str, date: Vec<Vec<(String, String)>>) -> Vec<String> {
     let mut stmts = Vec::new();
     for data in date.iter() {
@@ -29,8 +31,13 @@ pub fn updaterecord(database: &str, table: &str, date: Vec<Vec<(String, String)>
 
     stmts
 }
-pub fn executeupdaterecord(conn: &mut PooledConn, statement: &str) -> Result<String> {
-    conn.query_drop(statement).unwrap();
+pub fn executeupdaterecord(
+    conn: &mut PooledConn,
+    statement: &str,
+) -> std::result::Result<String, String> {
+    sql_query(statement)
+        .execute(conn)
+        .expect("Failed to execute UPDATE statement");
     Ok(String::from("Success"))
 }
 

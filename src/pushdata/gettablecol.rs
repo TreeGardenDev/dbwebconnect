@@ -1,6 +1,9 @@
 use crate::Data2;
-use mysql::prelude::*;
-use mysql::*;
+use crate::PooledConn;
+use diesel::prelude::*;
+use diesel::sql_query;
+use diesel::sql_types::Text;
+use diesel::QueryableByName;
 pub fn get_table_col(
     conn: &mut PooledConn,
     table_name: &str,
@@ -18,10 +21,14 @@ pub fn get_table_col(
     querystring.push_str(" and COLUMN_NAME != 'X_COORD'");
     querystring.push_str(" and COLUMN_NAME != 'Y_COORD'");
     querystring.push_str(" and COLUMN_NAME != 'Attachment'");
-    //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
-    let columnname = conn.query_map(querystring, |column_name: String| column_name.to_string())?;
+    #[derive(QueryableByName)]
+    struct ColName {
+        #[diesel(sql_type = Text)]
+        column_name: String,
+    }
 
-    Ok(columnname)
+    let rows: Vec<ColName> = sql_query(querystring).load(conn)?;
+    Ok(rows.into_iter().map(|r| r.column_name).collect())
 }
 
 pub fn createinsertstatement(

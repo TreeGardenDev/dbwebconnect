@@ -1,9 +1,12 @@
-use mysql::prelude::*;
-use mysql::*;
-//read from csv file to create table in mariadb with given column names
+use diesel::prelude::*;
+use diesel::sql_query;
+use crate::PooledConn;
+//read from csv file to create table in postgres with given column names
 
 pub fn exec_statement(conn: &mut PooledConn, statement: &str) {
-    conn.query_drop(statement).unwrap();
+    sql_query(statement)
+        .execute(conn)
+        .expect("Failed to execute DDL statement");
 }
 pub fn create_table(
     conn: &mut PooledConn,
@@ -29,7 +32,9 @@ pub fn create_table(
     query.pop();
     query.push_str(")");
     println!("{}", query);
-    conn.query_drop(query).unwrap();
+    sql_query(query)
+        .execute(conn)
+        .expect("Failed to create table");
 }
 pub fn create_table_web(
     database: &str,
@@ -42,7 +47,7 @@ pub fn create_table_web(
     query.push_str(".");
     query.push_str(table_name);
     query.push_str(" (");
-    query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
+    query.push_str("INTERNAL_PRIMARY_KEY SERIAL PRIMARY KEY, ");
     for i in 0..column_names.len() {
         let valid = validate_unprotected_term(column_names[i].0.as_str());
         if valid.0 == false {
@@ -81,12 +86,12 @@ pub fn create_table_web_gps(database: &str, table_name: &str) -> String {
     query.push_str(table_name);
     query.push_str("_GPS");
     query.push_str(" (");
-    query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
+    query.push_str("INTERNAL_PRIMARY_KEY SERIAL PRIMARY KEY, ");
     query.push_str("MAIN_TABLE_ID INT, ");
     query.push_str("GPS_ID INT, ");
     query.push_str("X_COORD VARCHAR(100), ");
     query.push_str("Y_COORD VARCHAR(100), ");
-    query.push_str("Attachment BLOB, ");
+    query.push_str("Attachment BYTEA, ");
     //for i in 0..column_names.len() {
     //    let valid=validate_unprotected_term(column_names[i].1.as_str());
     //    if valid.0==false{

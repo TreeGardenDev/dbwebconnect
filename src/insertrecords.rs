@@ -1,14 +1,10 @@
-//accept json to insert record into database
-//use serde to deserialize json to struct
-//use mysql to insert record into database
-
 use crate::dbconnect;
 use crate::pushdata::gettablecol;
 use crate::querytable;
-use mysql;
-use mysql::prelude::Queryable;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+use diesel::prelude::*;
+use diesel::sql_query;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TableDef {
@@ -177,6 +173,8 @@ pub fn insert_attachment(
 }
 pub fn exec_insert(statement: String) -> Result<String> {
     let mut conn = dbconnect::internalqueryconn();
-    conn.query_drop(statement).unwrap();
+    sql_query(statement)
+        .execute(&mut conn)
+        .expect("Insert failed");
     Ok(String::from("Success"))
 }

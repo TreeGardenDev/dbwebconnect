@@ -1,5 +1,8 @@
-use mysql::prelude::*;
-use mysql::*;
+use crate::PooledConn;
+use diesel::prelude::*;
+use diesel::sql_query;
+use diesel::sql_types::Text;
+use diesel::QueryableByName;
 use serde_json::json;
 
 //use crate::{connkey, dbconnect};
@@ -32,19 +35,36 @@ pub fn exec_map(
     conn: &mut PooledConn,
     query: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    let stmt: Vec<String> = conn.query_map_opt(query, |data| data.unwrap_or("".to_string()))?;
+    #[derive(QueryableByName)]
+    struct SingleString {
+        #[diesel(sql_type = Text)]
+        #[allow(non_snake_case)]
+        COLUMN_NAME: String,
+    }
 
-    //
-
-    Ok(stmt)
+    let rows: Vec<SingleString> = sql_query(query).load(conn)?;
+    Ok(rows.into_iter().map(|r| r.COLUMN_NAME).collect())
 }
 
 pub fn exec_map_tuple(
     conn: &mut PooledConn,
     query: &str,
 ) -> std::result::Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
-    let stmt: Vec<(String, String)> = conn.query_map(query, |(data1, data2)| (data1, data2))?;
-    Ok(stmt)
+    #[derive(QueryableByName)]
+    struct TwoStrings {
+        #[diesel(sql_type = Text)]
+        #[allow(non_snake_case)]
+        COLUMN_NAME: String,
+        #[diesel(sql_type = Text)]
+        #[allow(non_snake_case)]
+        CONSTRAINT_NAME: String,
+    }
+
+    let rows: Vec<TwoStrings> = sql_query(query).load(conn)?;
+    Ok(rows
+        .into_iter()
+        .map(|r| (r.COLUMN_NAME, r.CONSTRAINT_NAME))
+        .collect())
 }
 pub fn grab_columntypes(
     table: &str,
@@ -189,25 +209,30 @@ fn query_table(
     //    })?; //??
 
     let mut stmt = Vec::new();
-    for i in 0..columntypes.len() {
+    for col in columntypes.iter() {
         let mut query = String::from("SELECT ");
-        query.push_str(&columntypes[i]);
-        query.push_str(" FROM ");
+        // Cast to text so Diesel can load everything as String
+        query.push_str(col);
+        query.push_str("::text AS value FROM ");
         query.push_str(database);
         query.push_str(".");
         query.push_str(table);
-        if whereclause != "" {
+        if !whereclause.is_empty() {
             query.push_str(" WHERE ");
             query.push_str(whereclause);
         }
-        let row = conn
-            .query_map(query.clone(), |columntypes: String| columntypes)
-            .unwrap();
 
-        stmt.push(row);
-        query.clear();
+        #[derive(QueryableByName)]
+        struct ValueRow {
+            #[diesel(sql_type = Text)]
+            value: String,
+        }
+
+        let rows: Vec<ValueRow> = sql_query(query.clone()).load(conn)?;
+        let row_vals: Vec<String> = rows.into_iter().map(|r| r.value).collect();
+        stmt.push(row_vals);
     }
-    //let mut fixedstmt:Vec<Vec<String>>=vec![&columntypes.len(), &stmt.len()];
+
     Ok(stmt)
 }
 fn deconstruct_where(whereclause: &str) -> (String, String) {
@@ -364,8 +389,15 @@ pub fn exec_grab_tablenames(
     conn: &mut PooledConn,
     query: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
-    let stmt: Vec<String> = conn.query_map(query, |data| data)?;
-    Ok(stmt)
+    #[derive(QueryableByName)]
+    struct SingleStringRow {
+        #[diesel(sql_type = Text)]
+        #[allow(non_snake_case)]
+        TABLE_NAME: String,
+    }
+
+    let rows: Vec<SingleStringRow> = sql_query(query).load(conn)?;
+    Ok(rows.into_iter().map(|r| r.TABLE_NAME).collect())
 }
 
 pub fn json_table_names(queryresult: Vec<String>, database: &str) -> serde_json::Value {
@@ -463,35 +495,44 @@ fn exec_query_unique_relationships(
     parent_table: &str,
     _database: &str,
 ) -> std::result::Result<Vec<UniqueRelation>, Box<dyn std::error::Error>> {
-    //create stmt that is a Vec<Vec<String>>
-    //let count_stmt: Vec<u32> = conn.query_map(query, |data| data)?;
-    //let countstmt = count_unique_relationships(parent_table).unwrap();
-    //let count = exec_count_unique_relationships(conn, &countstmt).unwrap()[0].parse::<u32>().unwrap();
-
-    //let unique_child_tables = grab_child_unique_relationships(parent_table).unwrap();
-    //let unique_child_tables = exec_count_unique_relationships(conn, &unique_child_tables).unwrap();
-    let relationshiptablecolumns = vec![
-        "TARGETED_DATABASE".to_string(),
-        "parent_table".to_string(),
-        "child_table".to_string(),
-        "where_clause".to_string(),
-    ];
-    let mut vectors: Vec<Vec<String>> = Vec::new();
-    for column in relationshiptablecolumns.iter() {
-        let mut query = String::from("SELECT ");
-        query.push_str(column);
-        query.push_str(" FROM Relationships.relationships WHERE parent_table = '");
-        query.push_str(parent_table);
-        query.push_str("'");
-        let stmt: Vec<String> = conn.query_map(&query, |data| data)?;
-        vectors.push(stmt);
+    #[derive(QueryableByName)]
+    struct RelRow {
+        #[diesel(sql_type = Text)]
+        #[allow(non_snake_case)]
+        TARGETED_DATABASE: String,
+        #[diesel(sql_type = Text)]
+        parent_table: String,
+        #[diesel(sql_type = Text)]
+        child_table: String,
+        #[diesel(sql_type = Text)]
+        where_clause: String,
     }
-    //put
 
-    //let mut unique_relation: Vec<UniqueRelation> = Vec::new();
-    let relation = create_uniques(vectors).unwrap();
+    let mut query = String::from(
+        "SELECT TARGETED_DATABASE, parent_table, child_table, where_clause FROM Relationships.relationships WHERE parent_table = '",
+    );
+    query.push_str(parent_table);
+    query.push_str("'");
 
-    Ok(relation)
+    let rows: Vec<RelRow> = sql_query(&query).load(conn)?;
+
+    let uniques = rows
+        .into_iter()
+        .map(|r| {
+            let split: Vec<&str> = r.where_clause.split('=').collect();
+            let parent_column = split.get(0).unwrap_or(&"").to_string();
+            let child_column = split.get(1).unwrap_or(&"").to_string();
+            UniqueRelation::new(
+                &r.TARGETED_DATABASE,
+                &r.parent_table,
+                &parent_column,
+                &r.child_table,
+                &child_column,
+            )
+        })
+        .collect();
+
+    Ok(uniques)
 }
 
 pub fn initialize_db_table(

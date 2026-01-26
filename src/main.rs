@@ -1,10 +1,9 @@
-use actix_multipart::form::tempfile::TempFileConfig;
-use actix_session::{storage::RedisActorSessionStore, SessionMiddleware};
 use actix_web::{cookie, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use csv::Reader;
 use data_encoding::BASE64;
-use mysql::*;
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 pub mod connkey;
@@ -21,6 +20,9 @@ pub mod querytable;
 pub mod relationships;
 pub mod tablecreate;
 pub mod update;
+
+// Global database connection type, backed by Diesel Postgres
+pub type PooledConn = PgConnection;
 //use rusoto_s3::*;
 //use mysql::prelude::*;
 //use crate::createrecord::generateform::CreateRelation;
@@ -35,23 +37,25 @@ async fn main() {
     args.push_str(":8080");
     //let pword=std::env::args().nth(2).unwrap();
 
-    let secretkey = cookie::Key::generate();
+    //let secretkey = cookie::
     let redisconnection = String::from("127.0.0.1:6379");
 
     let server = HttpServer::new(move || {
+        //App::new()
+        //    .wrap(SessionMiddleware::new(
+        //        RedisActorSessionStore::new(&redisconnection),
+        //        secretkey.clone(),
+        //    ))
         App::new()
-            .wrap(SessionMiddleware::new(
-                RedisActorSessionStore::new(&redisconnection),
-                secretkey.clone(),
-            ))
             //session cookie
-            .app_data(TempFileConfig::default().directory("./tmp"))
+            //.app_data(TempFileConfig::default().directory("./tmp"))
             //force users to start at / before going to /main
             .service(
                 web::resource("/")
                     .route(web::get().to(getinitializeconnect))
                     .route(web::post().to(postinitializeconnect)),
             )
+            .route("/health", web::get().to(health))
             //.route("/main", web::get().to(index))
             //.route("/auth", web::post().to(auth))
             .route("/getkey/{database}&apikey={apikey}", web::get().to(getkey))
@@ -171,6 +175,50 @@ async fn getinitializeconnect() -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+async fn health() -> impl Responder {
+    let db_url = std::env::var("DATABASE_URL");
+
+    match db_url {
+        Ok(url) => match PgConnection::establish(&url) {
+            Ok(_) => {
+                let info = serde_json::json!({
+                    "status": "ok",
+                    "database": "postgres",
+                    "connection": "ok",
+                    "logical_model": "single_db_with_schemas",
+                });
+
+                HttpResponse::Ok()
+                    .content_type("application/json; charset=utf-8")
+                    .body(info.to_string())
+            }
+            Err(e) => {
+                let info = serde_json::json!({
+                    "status": "error",
+                    "database": "postgres",
+                    "connection": "failed",
+                    "message": e.to_string(),
+                });
+
+                HttpResponse::InternalServerError()
+                    .content_type("application/json; charset=utf-8")
+                    .body(info.to_string())
+            }
+        },
+        Err(_) => {
+            let info = serde_json::json!({
+                "status": "error",
+                "database": "postgres",
+                "connection": "failed",
+                "message": "DATABASE_URL not set",
+            });
+
+            HttpResponse::InternalServerError()
+                .content_type("application/json; charset=utf-8")
+                .body(info.to_string())
+        }
+    }
 }
 //async fn getcreaterelation() -> impl Responder {
 //    let html = createrecord::generateform::getcreaterelationshipdefined();

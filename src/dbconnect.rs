@@ -1,53 +1,25 @@
-//use crate::Reader;
 use crate::LinkDataBase;
 use crate::PooledConn;
 use csv::ReaderBuilder;
-use mysql::Pool;
-pub fn database_connection(database: &str) -> PooledConn {
-    let form = grabfromfile();
-    let mut url = String::new();
-    url.push_str("mysql://");
-    url.push_str(&form.dbuser);
-    url.push_str(":");
-    url.push_str(&form.dbpass);
-    url.push_str("@");
-    url.push_str(&form.dbhost);
-    url.push_str(":");
-    url.push_str(&form.dbport);
-    url.push_str("/");
-    println!("{}", url);
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 
-    let url = format!("{}{}", url, database);
-    let url = url.as_str();
-    let pool = Pool::new(url).unwrap();
-    let conn = pool.get_conn().unwrap();
-    conn
+// For Postgres/Diesel we maintain a single physical database and use
+// the `database` argument only as a logical schema/table prefix inside SQL.
+// All connections are created from a DATABASE_URL environment variable.
+pub fn database_connection(_database: &str) -> PooledConn {
+    internalqueryconn()
 }
 pub fn database_connection_no_db_web(
-    dbuser: &str,
-    dbpassword: &str,
-    dbport: &str,
-    dbhost: &str,
+    _dbuser: &str,
+    _dbpassword: &str,
+    _dbport: &str,
+    _dbhost: &str,
 ) -> PooledConn {
-    let mut url = String::new();
-    url.push_str("mysql://");
-    url.push_str(&dbuser);
-    url.push_str(":");
-    url.push_str(&dbpassword);
-    url.push_str("@");
-    url.push_str(&dbhost);
-    url.push_str(":");
-    url.push_str(&dbport);
-    url.push_str("/");
-    println!("{}", url);
-    let url = url.as_str();
-    let pool = Pool::new(url).unwrap();
-    let conn = pool.get_conn().unwrap();
-    return conn;
+    internalqueryconn()
 }
 pub fn database_connection_no_db() -> PooledConn {
-    let conn = internalqueryconn();
-    return conn;
+    internalqueryconn()
 }
 fn grabfromfile() -> LinkDataBase {
     //igneroe header
@@ -71,32 +43,14 @@ fn grabfromfile() -> LinkDataBase {
         form.dbhost = record[2].to_string();
         form.dbport = record[3].to_string();
     }
-    println!("grabfromfile");
-    println!("{:?}", form);
     form
 }
 
 pub fn internalqueryconn() -> PooledConn {
-    let pword = std::env::args().nth(2).expect("no password given");
-    //change
-    //let url=String::from("mysql://root:secret@localhost:3306/");
-    let mut url = String::from("mysql://root:");
-    url.push_str(&pword);
-    url.push_str("@localhost:3306/");
-    let url = url.as_str();
-    let pool = Pool::new(url).unwrap();
-    let conn = pool.get_conn().unwrap();
-    return conn;
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set for Postgres connection");
+    PgConnection::establish(&database_url).expect("Failed to connect to Postgres")
 }
 pub fn internalqueryconnapikey() -> PooledConn {
-    //change
-    let pword = std::env::args().nth(2).expect("no password given");
-    //let url=String::from("mysql://root:secret@localhost:3306/ApiKey");
-    let mut url = String::from("mysql://root:");
-    url.push_str(&pword);
-    url.push_str("@localhost:3306/ApiKey");
-    let url = url.as_str();
-    let pool = Pool::new(url).unwrap();
-    let conn = pool.get_conn().unwrap();
-    return conn;
+    internalqueryconn()
 }
