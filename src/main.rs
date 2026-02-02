@@ -21,33 +21,20 @@ pub mod relationships;
 pub mod tablecreate;
 pub mod update;
 pub mod auth;
+pub mod validation;
 
 // Global database connection type, backed by Diesel Postgres
 pub type PooledConn = PgConnection;
-//use rusoto_s3::*;
-//use mysql::prelude::*;
-//use crate::createrecord::generateform::CreateRelation;
-//use actix_identity::{CookieIdentityPolicy, IdentityService};
-//use futures_util::TryStreamExt as _;
-//use uuid::Uuid;
-//use actix_multipart::Multipart;
-//test
+
 #[actix_web::main]
 async fn main() {
     let mut args = std::env::args().nth(1).unwrap();
     args.push_str(":8080");
-    //let pword=std::env::args().nth(2).unwrap();
 
-    //let secretkey = cookie::
-    let redisconnection = String::from("127.0.0.1:6379");
+    //let redisconnection = String::from("127.0.0.1:6379");
 
     let server = HttpServer::new(move || {
-        //App::new()
-        //    .wrap(SessionMiddleware::new(
-        //        RedisActorSessionStore::new(&redisconnection),
-        //        secretkey.clone(),
-        //    ))
-        App::new()
+                App::new()
             .app_data(web::Data::new(auth::AppState::from_env()))
             //session cookie
             //.app_data(TempFileConfig::default().directory("./tmp"))
@@ -65,11 +52,7 @@ async fn main() {
                 web::post().to(auth::update_user_schemas),
             )
             .route("/health", web::get().to(health))
-            //.route("/main", web::get().to(index))
-            //.route("/auth", web::post().to(auth))
             .route("/getkey/{database}&apikey={apikey}", web::get().to(getkey))
-            //j.route("/method", web::post().to(method))
-            //.route("/createtable", web::post().to(createtable))
             .route(
                 "/createtable/{database}&table={table}&gps={gps}&apikey={apikey}",
                 web::post().to(createtableweb),
@@ -78,12 +61,10 @@ async fn main() {
                 "/droptable/{database}&table={table}&apikey={apikey}",
                 web::post().to(droptableweb),
             )
-            //.route("/createdatabase", web::post().to(createnewdb))
             .route(
                 "/createdatabase/{database}&apikey={apikey}",
                 web::post().to(createnewdbweb),
             )
-            //.route("/query", web::post().to(query))
             .route(
                 "/query/{database}&table={table}&select={select}&where={where}&expand={expand}&apikey={api}",
                 web::get().to(querytojson),
@@ -104,12 +85,7 @@ async fn main() {
                 "/queryall/{database}&table={table}&depth={depth}&apikey={api}",
                 web::get().to(queryall),
             )
-            //.service(
-            //    web::resource("/create")
-            //        .route(web::get().to(getcreate))
-            //        .route(web::post().to(postcreate)),
-            //)
-            .route(
+                    .route(
                 "/insert/{database}&table={table}&apikey={api}",
                 web::post().to(dbinsert),
             )
@@ -125,13 +101,7 @@ async fn main() {
                 "/updaterecord/{database}&table={table}&apikey={api}",
                 web::post().to(dbupdaterecord),
             )
-            //.route("/create/saveform", web::post().to(saveform))
-            //.service(
-            //    web::resource("/upload")
-            //        .route(web::get().to(getupload))
-            //        .route(web::post().to(postupload)),
-            //)
-            .route(
+                     .route(
                 "/relationship/{database}&apikey={api}",
                 web::post().to(createrelationshipweb),
             )
@@ -143,15 +113,7 @@ async fn main() {
                 "/deleterecord/{database}&table={table}&apikey={api}",
                 web::post().to(deleterecord),
             )
-        //.service(
-        //    web::resource("/createrelation")
-        //        .route(web::get().to(getcreaterelation))
-        //        .route(web::post().to(postcreaterelationdefined)),
-        //)
-
-        //            .route("/insert", web::post().to(method))
-        //           .route("/create", web::post().to(method))
-    });
+            });
     println!("Starting server at {}", args);
     server
         .bind(args)
@@ -163,7 +125,7 @@ async fn main() {
 async fn postinitializeconnect(form: web::Form<ApiKey>) -> impl Responder {
     // Legacy endpoint: API-key based initialization is deprecated.
     // Kept only to avoid breaking old clients; always returns an error.
-    let _ = form; // suppress unused warning
+    let _ = form; 
     HttpResponse::Gone()
         .content_type("application/json; charset=utf-8")
         .body("{\"error\":\"deprecated_endpoint_use_jwt_auth\"}")
@@ -218,47 +180,6 @@ async fn health() -> impl Responder {
         }
     }
 }
-//async fn getcreaterelation() -> impl Responder {
-//    let html = createrecord::generateform::getcreaterelationshipdefined();
-//    HttpResponse::Ok().body(html)
-//}
-//async fn postcreaterelationdefined(form: web::Form<NewRelationShip>) -> impl Responder {
-//    let database = form.database.clone();
-//
-//    let _ = createrelationship::commitrelationshipdefined(
-//        &database,
-//        &form.table1,
-//        &form.column1,
-//        &form.table2,
-//        &form.column2,
-//        &form.ondelete,
-//        &form.onupdate,
-//    );
-//    HttpResponse::Ok()
-//        .content_type("text/html; charset=utf-8")
-//        .body(include_str!("pages/methodsuccess.html"))
-//}
-//async fn index() -> impl Responder {
-//    HttpResponse::Ok()
-//        .content_type("text/html; charset=utf-8")
-//        .body(include_str!("page.html"))
-//}
-//async fn getupload() -> impl Responder {
-//    let html = createrecord::generateform::fileinsert();
-//    HttpResponse::Ok().body(html)
-//}
-//async fn postupload(MultipartForm(form): MultipartForm<UploadForm>) -> impl Responder {
-//    let table = &form.table.clone();
-//    let database = &form.database.clone();
-//
-//    let file = createrecord::generateform::file_upload(form);
-//
-//    let _ = pushdata::createtablestruct::read_csv2(&file, table, database);
-//
-//    HttpResponse::Ok()
-//        .content_type("text/html; charset=utf-8")
-//        .body(include_str!("pages/methodsuccess.html"))
-//}
 async fn createrelationshipweb(
     auth: auth::Authenticated,
     info: web::Path<(String, String)>,
@@ -350,6 +271,12 @@ async fn deleterecord(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut conn = dbconnect::internalqueryconn();
     let body = body.into_inner();
     let mut data = Vec::new();
@@ -357,8 +284,15 @@ async fn deleterecord(
         data.push((key.to_string(), value.to_string()));
     }
     let table = &info.1;
-    let statement = delete::deleterecord(&database, &table, data);
-    let _ = delete::exec_statement(&mut conn, &statement.unwrap());
+    let statement = match delete::deleterecord(&database, &table, data) {
+        Ok(s) => s,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .content_type("text/json; charset=utf-8")
+                .body("Invalid record id(s)");
+        }
+    };
+    let _ = delete::exec_statement(&mut conn, &statement);
 
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
@@ -427,13 +361,7 @@ async fn createtableweb(
             let _ = tablecreate::exec_statement(&mut conn, &stmt);
         }
 
-        //let _ = tablecreate::create_table_web(
-        //    &mut conn,
-        //    &database,
-        //    &table,
-        //    &parsed_json.0,
-        //    &parsed_json.1,
-        //);
+        
 
     HttpResponse::Ok()
         .content_type("text/json; charset=utf-8")
@@ -456,9 +384,14 @@ async fn droptableweb(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut conn = dbconnect::internalqueryconn();
     let body = body.into_inner();
-    //let mut data=Vec::new();
     let mut backup = false;
     for (_, value) in body.as_object().unwrap().iter() {
         //    data.push((key.to_string(),value.to_string()));
@@ -491,6 +424,12 @@ async fn retrieveattachment(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     println!("{:?}", &info.1);
     let table = &info.1;
     println!("{:?}", &info.2);
@@ -499,10 +438,31 @@ async fn retrieveattachment(
 
     let mut conn = dbconnect::internalqueryconn();
 
-    let stmt = querytable::retrieveattachmentstmt(table, database, id);
-    let result = querytable::exec_map(&mut conn, &stmt.unwrap());
-    let result = result.unwrap();
-    let encoded = BASE64.encode(&result[0].as_bytes());
+    let stmt = match querytable::retrieveattachmentstmt(table, database, id) {
+        Ok(s) => s,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .content_type("text/json; charset=utf-8")
+                .body("Invalid attachment id");
+        }
+    };
+
+    let result = match querytable::exec_map(&mut conn, &stmt) {
+        Ok(r) => r,
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .content_type("text/json; charset=utf-8")
+                .body("Failed to retrieve attachment");
+        }
+    };
+
+    if result.is_empty() {
+        return HttpResponse::NotFound()
+            .content_type("text/json; charset=utf-8")
+            .body("Attachment not found");
+    }
+
+    let encoded = BASE64.encode(result[0].as_bytes());
 
     let json = serde_json::json!(
         {
@@ -514,7 +474,6 @@ async fn retrieveattachment(
         .content_type("text/json; charset=utf-8")
         .body(json.to_string())
 }
-//grab attachment to put in s3 bucket
 
 async fn dbinsertattachment(
     auth: auth::Authenticated,
@@ -527,7 +486,11 @@ async fn dbinsertattachment(
             .content_type("text/json; charset=utf-8")
             .body("Forbidden for this database");
     }
-    //decode json
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
     let body = body.into_inner();
     let mut data = Vec::new();
     for (key, value) in body.as_object().unwrap().iter() {
@@ -542,11 +505,26 @@ async fn dbinsertattachment(
     let mut attachment = data[1].1.clone();
     attachment = attachment.replace("\"", "");
     println!("{:?}", attachment);
-    let encoded = BASE64.decode(attachment.as_bytes()).unwrap();
+
+    let encoded = match BASE64.decode(attachment.as_bytes()) {
+        Ok(b) => b,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .content_type("text/json; charset=utf-8")
+                .body("Invalid attachment encoding");
+        }
+    };
     println!("{:?}", encoded);
 
-    let insertstmt = insertrecords::insert_attachment(&info.0, &info.1, &filename, encoded);
-    let _ = insertrecords::exec_insert(insertstmt.unwrap());
+    let insertstmt = match insertrecords::insert_attachment(&info.0, &info.1, &filename, encoded) {
+        Ok(s) => s,
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .content_type("text/json; charset=utf-8")
+                .body("Failed to build insert statement");
+        }
+    };
+    let _ = insertrecords::exec_insert(insertstmt);
 
     //upload to s3 bucket using rust-s3
     //let bucket = "testbucket";
@@ -572,6 +550,12 @@ async fn dbinsert(
         return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
             .body("Forbidden for this database");
+    }
+
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
     }
 
     let body = body.into_inner();
@@ -661,14 +645,18 @@ async fn dbupdaterecord(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut conn = dbconnect::internalqueryconn();
     let body = body.into_inner();
     let mut storagevec: Vec<Vec<(String, String)>> = Vec::new();
     for record in body.iter() {
         let mut data = Vec::new();
         for (key, value) in record.as_object().unwrap().iter() {
-            // Store all values as strings (numbers, bools, etc. will be
-            // stringified) and let the SQL builder quote/cast appropriately.
             data.push((key.to_string(), value.to_string()));
         }
         storagevec.push(data);
@@ -702,6 +690,11 @@ async fn createnewdbweb(
 
     // Legacy admin API key in the path is ignored in favor of JWT-based admin checks.
     let database_name = &info.0;
+    if !validation::is_valid_identifier(database_name) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database name");
+    }
     let key = createdatabase::create_databaseweb(database_name);
     let encoded = BASE64.encode(key.as_bytes());
     let response = serde_json::json!(encoded);
@@ -808,6 +801,12 @@ async fn queryall(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut connection = dbconnect::internalqueryconn();
     let table = &info.1;
     let depth = &info.2;
@@ -836,6 +835,12 @@ async fn queryrelationship(
         return HttpResponse::Forbidden()
             .content_type("text/json; charset=utf-8")
             .body("Forbidden for this database");
+    }
+
+    if !validation::is_valid_identifier(database) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database name");
     }
 
     let mut connection = dbconnect::internalqueryconn();
@@ -895,6 +900,12 @@ async fn querytojson(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&info.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut connection = dbconnect::internalqueryconn();
 
     let tablename = &info.1;
@@ -943,6 +954,12 @@ async fn querytableschema(
             .body("Forbidden for this database");
     }
 
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(&body.1) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database or table name");
+    }
+
     let mut connection = dbconnect::internalqueryconn();
 
     let tablename = &body.1;
@@ -984,6 +1001,11 @@ async fn querydatabase(
     let mut connection = dbconnect::internalqueryconn();
 
     let database = &body.0;
+    if !validation::is_valid_identifier(database) {
+        return HttpResponse::BadRequest()
+            .content_type("text/json; charset=utf-8")
+            .body("Invalid database name");
+    }
         //expand will be true or false
         let expand = &body.1;
         //turn into bool
@@ -1249,7 +1271,12 @@ mod tests {
         let valid = newrecord.compare_fields(&body);
         assert_eq!(valid, true);
         let insert = newrecord.insert(&body, &table, &database);
-        assert_eq!(insert, String::from("INSERT INTO unit_tests.testinsertupdatedelete (col1, col2) VALUES (50, 'Test Addition'), (50, 'Test Addition')"));
+        assert_eq!(
+            insert,
+            String::from(
+                "INSERT INTO unit_tests.testinsertupdatedelete (col1, col2) VALUES ('50', 'Test Addition'), ('50', 'Test Addition')",
+            )
+        );
     }
     #[test]
     fn test_update_record() {
@@ -1264,7 +1291,12 @@ mod tests {
 
         let update = update::updaterecord(database, table, datastore);
         //assert_eq!(update.unwrap(), String::from("Success"));
-        assert_eq!(update[0], String::from("UPDATE unit_tests.testinsertupdatedelete SET col1= \"50\", col2= \"Changed\" WHERE INTERNAL_PRIMARY_KEY=1"));
+        assert_eq!(
+            update[0],
+            String::from(
+                "UPDATE unit_tests.testinsertupdatedelete SET col1 = '50', col2 = 'Changed' WHERE INTERNAL_PRIMARY_KEY = 1",
+            )
+        );
     }
     #[test]
     fn test_delete_record() {
@@ -1274,7 +1306,12 @@ mod tests {
         data.push(("1".to_string(), "1".to_string()));
         data.push(("2".to_string(), "2".to_string()));
         let statement = delete::deleterecord(database, table, data);
-        assert_eq!(statement.unwrap(), String::from("DELETE FROM unit_tests.testinsertupdatedelete WHERE INTERNAL_PRIMARY_KEY in( 1, 2)"));
+        assert_eq!(
+            statement.unwrap(),
+            String::from(
+                "DELETE FROM unit_tests.testinsertupdatedelete WHERE INTERNAL_PRIMARY_KEY IN (1, 2)",
+            )
+        );
     }
     #[test]
     fn test_drop_table() {

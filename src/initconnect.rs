@@ -1,8 +1,3 @@
-//initialize conenction parameters like username, password, host, port
-//use crate::LinkDataBase;
-//use std::fs::File;
-//use std::io::Write;
-
 pub fn getpagehtml() -> String {
     //get page html to type username, password, host, port.
     let mut html = String::new();

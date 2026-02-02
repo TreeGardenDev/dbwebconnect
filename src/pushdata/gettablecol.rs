@@ -16,8 +16,6 @@ pub fn get_table_col(
     //testcsv' AND TABLE_NAME='");
     querystring.push_str(table_name.to_string().as_str());
     querystring.push_str("'");
-    // In Postgres, unquoted identifiers are stored lowercased in information_schema,
-    // so filter on the lowercased names of our internal/system columns.
     querystring.push_str(" and COLUMN_NAME != 'internal_primary_key'");
     querystring.push_str(" and COLUMN_NAME != 'gps_id'");
     querystring.push_str(" and COLUMN_NAME != 'x_coord'");
@@ -55,13 +53,9 @@ pub fn createinsertstatement(
         for j in 0..data[i].columns.len() {
             println!("New Column");
             for k in 0..data[i].columns[j].len() {
-                //println!("Data below");
                 println!("{:?}", data[i].columns[j][k]);
-                //println!("Data above");
                 let datarecord = &data[i].columns[j][k];
-                //insert into mysql data from data variable into columns in columnname variable
-                //let insertstatement =gettablecol::createinsertstatement(&mut conn, &tablename);
-                //println!("{}", insertstatement);
+                
                 insertstatement.push_str("'");
                 insertstatement.push_str(&datarecord);
                 insertstatement.push_str("'");

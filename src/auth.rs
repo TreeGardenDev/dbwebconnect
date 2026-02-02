@@ -38,9 +38,14 @@ pub struct Authenticated {
 
 impl Authenticated {
     pub fn can_access_schema(&self, schema: &str) -> bool {
-        if self.schemas.is_empty() {
+        if self.role == "admin" {
             return true;
         }
+
+        if self.schemas.is_empty() {
+            return false;
+        }
+
         self.schemas.iter().any(|s| s == schema)
     }
 }
@@ -193,13 +198,22 @@ pub async fn register(
 
     let mut conn = get_connection();
 
-    // Determine role: first registered user becomes admin, others are regular users.
-    let count_row = diesel::sql_query("SELECT COUNT(*)::INT as count FROM \"Auth\".users")
-        .get_result::<UserCount>(&mut conn)
-        .unwrap_or(UserCount { count: 0 });
+    // Determine role. By default the first registered user becomes admin
+    // (for easy bootstrap), but this behavior can be disabled by setting
+    // AUTH_BOOTSTRAP_MODE to any value other than "first-user-admin".
+    let bootstrap_mode = std::env::var("AUTH_BOOTSTRAP_MODE")
+        .unwrap_or_else(|_| "first-user-admin".to_string());
 
-    let role = if count_row.count == 0 {
-        "admin".to_string()
+    let role = if bootstrap_mode == "first-user-admin" {
+        let count_row = diesel::sql_query("SELECT COUNT(*)::INT as count FROM \"Auth\".users")
+            .get_result::<UserCount>(&mut conn)
+            .unwrap_or(UserCount { count: 0 });
+
+        if count_row.count == 0 {
+            "admin".to_string()
+        } else {
+            "user".to_string()
+        }
     } else {
         "user".to_string()
     };

@@ -1,4 +1,5 @@
 use crate::PooledConn;
+use crate::validation;
 use diesel::prelude::*;
 use diesel::sql_query;
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,8 @@ impl RelationshipBuilder{
         relationship
     }
     pub fn check_relationship_name(&self, conn: &mut PooledConn)->bool{
-        let stmt = format!("SELECT relationship FROM Relationships.relationships WHERE relationship='{}'", self.relationship_name);
+        let safe_name = validation::escape_sql_literal(&self.relationship_name);
+        let stmt = format!("SELECT relationship FROM Relationships.relationships WHERE relationship='{}'", safe_name);
 
         #[derive(QueryableByName)]
         struct RelRow {
@@ -55,7 +57,25 @@ impl RelationshipBuilder{
 }
 
 pub fn create_relationship_stmt(relationship: &RelationshipBuilder) -> String{
-    let stmt = format!("INSERT INTO Relationships.relationships (targeted_database, parent_table, child_table, where_clause, relationship) VALUES ('{}', '{}', '{}', '{}', '{}')", relationship.database, relationship.parent_table, relationship.child_table, relationship.where_clause, relationship.relationship_name);
+        let db = &relationship.database;
+        let parent = &relationship.parent_table;
+        let child = &relationship.child_table;
+        let where_clause = &relationship.where_clause;
+        let name = &relationship.relationship_name;
+
+        // These values ultimately build a SQL statement; escape them as string
+        // literals so a malicious relationship name or where_clause cannot break
+        // the INSERT.
+        let db_esc = validation::escape_sql_literal(db);
+        let parent_esc = validation::escape_sql_literal(parent);
+        let child_esc = validation::escape_sql_literal(child);
+        let where_esc = validation::escape_sql_literal(where_clause);
+        let name_esc = validation::escape_sql_literal(name);
+
+        let stmt = format!(
+            "INSERT INTO Relationships.relationships (targeted_database, parent_table, child_table, where_clause, relationship) VALUES ('{}', '{}', '{}', '{}', '{}')",
+            db_esc, parent_esc, child_esc, where_esc, name_esc,
+        );
     stmt
 }
 pub fn execute_relationship_stmt(stmt: &str, conn: &mut PooledConn){

@@ -7,19 +7,30 @@ pub fn deleterecord(
     table: &str,
     id: Vec<(String, String)>,
 ) -> std::result::Result<String, String> {
-    //grab second string from tuple
+    // Collect and validate numeric IDs make sure positive
+    let mut numeric_ids: Vec<i64> = Vec::new();
+    for (_, raw) in id.iter() {
+        let trimmed = raw.trim().trim_matches('"');
+        match trimmed.parse::<i64>() {
+            Ok(v) if v > 0 => numeric_ids.push(v),
+            _ => return Err("invalid record id".to_string()),
+        }
+    }
+
+    if numeric_ids.is_empty() {
+        return Err("no record ids provided".to_string());
+    }
+
     let mut stmt = String::from("DELETE FROM ");
     stmt.push_str(database);
     stmt.push_str(".");
     stmt.push_str(table);
-    stmt.push_str(" WHERE ");
-    stmt.push_str("INTERNAL_PRIMARY_KEY");
-    stmt.push_str(" in( ");
-    for i in 0..id.len() {
-        stmt.push_str(&id[i].1);
-        if i != id.len() - 1 {
+    stmt.push_str(" WHERE INTERNAL_PRIMARY_KEY IN (");
+    for (idx, v) in numeric_ids.iter().enumerate() {
+        if idx > 0 {
             stmt.push_str(", ");
         }
+        stmt.push_str(&v.to_string());
     }
     stmt.push_str(")");
     println!("{}", stmt);
@@ -27,7 +38,7 @@ pub fn deleterecord(
 }
 
 pub fn droptable(database: &str, table: &str) -> std::result::Result<String, String> {
-    //grab second string from tuple
+    // This is only called from admin-only handlers; the database and table
     let mut stmt = String::from("DROP TABLE ");
     stmt.push_str(database);
     stmt.push_str(".");

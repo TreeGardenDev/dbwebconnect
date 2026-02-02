@@ -4,9 +4,6 @@ use csv::ReaderBuilder;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-// For Postgres/Diesel we maintain a single physical database and use
-// the `database` argument only as a logical schema/table prefix inside SQL.
-// All connections are created from a DATABASE_URL environment variable.
 pub fn database_connection(_database: &str) -> PooledConn {
     internalqueryconn()
 }
@@ -22,7 +19,6 @@ pub fn database_connection_no_db() -> PooledConn {
     internalqueryconn()
 }
 fn grabfromfile() -> LinkDataBase {
-    //igneroe header
     let mut reader = ReaderBuilder::new()
         .has_headers(false)
         .from_path("tmp/dbconnection.txt")
@@ -34,7 +30,6 @@ fn grabfromfile() -> LinkDataBase {
         dbport: String::new(),
     };
     for result in reader.records() {
-        //ignore header
 
         let record = result.unwrap();
         println!("{:?}", record);
