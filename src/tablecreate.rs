@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use diesel::sql_query;
 use crate::PooledConn;
+use crate::validation;
 //read from csv file to create table in postgres with given column names
 
 pub fn exec_statement(conn: &mut PooledConn, statement: &str) {
@@ -42,6 +43,10 @@ pub fn create_table_web(
     column_names: &Vec<(String, String)>,
     column_types: &Vec<(String, String)>,
 ) -> String {
+    if !validation::is_valid_identifier(database) || !validation::is_valid_identifier(table_name)
+    {
+        return "Invalid schema or table name".to_string();
+    }
     let mut query = String::from("CREATE TABLE ");
     query.push_str(database);
     query.push_str(".");

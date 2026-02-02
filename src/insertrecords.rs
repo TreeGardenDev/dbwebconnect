@@ -71,7 +71,7 @@ impl TableDef {
             }
         }
         stmt.push_str(") VALUES (");
-        for data in date.iter() {
+        for (record_idx, data) in date.iter().enumerate() {
             for i in 0..data.len() {
                 let mut valuedata = data[i].1.replace("\"", "");
                 // Escape single quotes for SQL literal
@@ -87,12 +87,11 @@ impl TableDef {
                     stmt.push_str(", ");
                 }
             }
-            stmt.push_str("), (");
+            if record_idx != date.len() - 1 {
+                stmt.push_str("), (");
+            }
         }
-        // remove the trailing `, (`
-        stmt.pop();
-        stmt.pop();
-        stmt.pop();
+        stmt.push_str(")");
         stmt
     }
 }

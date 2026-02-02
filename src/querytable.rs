@@ -1,4 +1,5 @@
 use crate::PooledConn;
+use crate::validation;
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
@@ -29,6 +30,39 @@ pub fn query_tables(
         let querydata = query_table(conn, table, whereclause, database, columns).unwrap();
         querydata
     }
+}
+
+
+fn normalize_simple_where(whereclause: &str) -> Option<String> {
+    let trimmed = whereclause.trim();
+
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if trimmed == "1=1" {
+        return Some("1=1".to_string());
+    }
+
+    let mut parts = trimmed.splitn(2, '=');
+    let col = match parts.next() {
+        Some(c) => c.trim(),
+        None => return Some("1=0".to_string()),
+    };
+    let raw_val = match parts.next() {
+        Some(v) => v.trim(),
+        None => return Some("1=0".to_string()),
+    };
+
+    if !validation::is_valid_identifier(col) {
+        return Some("1=0".to_string());
+    }
+
+    // Strip optional surrounding single quotes from the value.
+    let val = raw_val.trim_matches('\'');
+    let escaped = validation::escape_sql_literal(val);
+
+    Some(format!("{} = '{}'", col, escaped))
 }
 
 pub fn exec_map(
@@ -188,13 +222,19 @@ pub fn retrieveattachmentstmt(
     database: &str,
     id: &str,
 ) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    // ID must be a positive integer; reject anything else.
+    let parsed_id: i64 = id.trim().parse()?;
+    if parsed_id <= 0 {
+        return Err("invalid attachment id".into());
+    }
+
     let mut query = String::from("SELECT Attachment FROM ");
     query.push_str(database);
     query.push_str(".");
     query.push_str(table);
     query.push_str("_GPS");
-    query.push_str(" WHERE INTERNAL_PRIMARY_KEY= ");
-    query.push_str(id);
+    query.push_str(" WHERE INTERNAL_PRIMARY_KEY = ");
+    query.push_str(&parsed_id.to_string());
     Ok(query)
 }
 
@@ -219,9 +259,9 @@ fn query_table(
         query.push_str(database);
         query.push_str(".");
         query.push_str(table);
-        if !whereclause.is_empty() {
+        if let Some(safe_where) = normalize_simple_where(whereclause) {
             query.push_str(" WHERE ");
-            query.push_str(whereclause);
+            query.push_str(&safe_where);
         }
 
         #[derive(QueryableByName)]

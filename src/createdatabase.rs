@@ -1,9 +1,13 @@
 use crate::dbconnect;
 use diesel::prelude::*;
 use diesel::sql_query;
+use crate::validation;
 //create a logical database (schema) in Postgres and register an API key
 pub fn create_database(database_name: &str) {
     let mut conn = dbconnect::internalqueryconn();
+    // database_name is expected to be validated at the HTTP layer; this is
+    // a final safety net.
+    assert!(validation::is_valid_identifier(database_name));
     let mut query = String::from("CREATE SCHEMA IF NOT EXISTS ");
     query.push_str(database_name);
     query.push_str(";");
@@ -16,6 +20,7 @@ pub fn create_database(database_name: &str) {
 pub fn create_databaseweb(database: &str) -> String {
     let mut conn = dbconnect::internalqueryconn();
     let dbname = String::from(database);
+    assert!(validation::is_valid_identifier(&dbname));
     let mut query = String::from("CREATE SCHEMA IF NOT EXISTS ");
     query.push_str(&dbname);
     query.push_str(";");
