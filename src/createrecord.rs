@@ -1,9 +1,9 @@
 //creates single csv record to be written to file
 //
 use crate::pushdata::gettablecol;
+use crate::PooledConn;
 use csv::Writer;
-use mysql::*;
-pub mod generateform;
+//pub mod generateform;
 pub fn create_session_csv(
     conn: &mut PooledConn,
     table: &str,

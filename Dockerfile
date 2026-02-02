@@ -20,4 +20,4 @@ COPY . .
 RUN cargo build --release
 EXPOSE 8080
 # Set the entrypoint
-ENTRYPOINT [ "./target/release/dbwebconnect" , "localhost", "$PWD"]
+ENTRYPOINT [ "./target/release/dbwebconnect" , "0.0.0.0", "$PWD"]

@@ -1,27 +1,36 @@
 use crate::Data2;
-use mysql::prelude::*;
-use mysql::*;
+use crate::PooledConn;
+use diesel::prelude::*;
+use diesel::sql_query;
+use diesel::sql_types::Text;
+use diesel::QueryableByName;
 pub fn get_table_col(
     conn: &mut PooledConn,
     table_name: &str,
     database_name: &str,
 ) -> std::result::Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut querystring: String =
-        String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
+	String::from("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='");
     querystring.push_str(database_name.to_string().as_str());
     querystring.push_str("' AND TABLE_NAME='");
     //testcsv' AND TABLE_NAME='");
     querystring.push_str(table_name.to_string().as_str());
     querystring.push_str("'");
-    querystring.push_str(" and COLUMN_NAME != 'INTERNAL_PRIMARY_KEY'");
-    querystring.push_str(" and COLUMN_NAME != 'GPS_ID'");
-    querystring.push_str(" and COLUMN_NAME != 'X_COORD'");
-    querystring.push_str(" and COLUMN_NAME != 'Y_COORD'");
-    querystring.push_str(" and COLUMN_NAME != 'Attachment'");
-    //let columnname = conn.query_map("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='testcsv' AND TABLE_NAME='Data'", |(COLUMN_NAME)| COLUMN_NAME)?;
-    let columnname = conn.query_map(querystring, |column_name: String| column_name.to_string())?;
+    // In Postgres, unquoted identifiers are stored lowercased in information_schema,
+    // so filter on the lowercased names of our internal/system columns.
+    querystring.push_str(" and COLUMN_NAME != 'internal_primary_key'");
+    querystring.push_str(" and COLUMN_NAME != 'gps_id'");
+    querystring.push_str(" and COLUMN_NAME != 'x_coord'");
+    querystring.push_str(" and COLUMN_NAME != 'y_coord'");
+    querystring.push_str(" and COLUMN_NAME != 'attachment'");
+    #[derive(QueryableByName)]
+    struct ColName {
+        #[diesel(sql_type = Text)]
+        column_name: String,
+    }
 
-    Ok(columnname)
+    let rows: Vec<ColName> = sql_query(querystring).load(conn)?;
+    Ok(rows.into_iter().map(|r| r.column_name).collect())
 }
 
 pub fn createinsertstatement(

@@ -1,7 +1,9 @@
 use crate::Data2;
+use crate::PooledConn;
 //use crate::Data;
-use mysql::prelude::*;
-use mysql::*;
+use diesel::prelude::*;
+
+
 pub mod createtablestruct;
 pub mod gettablecol;
 
@@ -18,8 +20,9 @@ fn execute_insert2(
     let insertstatement =
         gettablecol::createinsertstatement(&mut conn, &tablename, data, &database);
     println!("{}", insertstatement);
-
-    let _ = conn.query_drop(insertstatement);
+    diesel::sql_query(insertstatement)
+        .execute(&mut conn)
+        .expect("Bulk insert failed");
     println!("Inserted data into table");
     Ok(())
 }

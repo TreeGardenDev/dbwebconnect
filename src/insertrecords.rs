@@ -1,14 +1,9 @@
-//accept json to insert record into database
-//use serde to deserialize json to struct
-//use mysql to insert record into database
-
 use crate::dbconnect;
 use crate::pushdata::gettablecol;
-use crate::querytable;
-use mysql;
-use mysql::prelude::Queryable;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
+use diesel::prelude::*;
+use diesel::sql_query;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TableDef {
@@ -27,14 +22,14 @@ impl TableDef {
     pub fn populate(&mut self, table_name: &str, database: &str) {
         let mut conn = dbconnect::internalqueryconn();
 
-        let typesstmt = querytable::grab_columntypes(table_name, database).unwrap();
-        println!("{}", typesstmt);
-        let types = querytable::exec_map(&mut conn, &typesstmt).unwrap();
+        // For Postgres we no longer depend on MySQL's INFORMATION_SCHEMA.COLUMN_TYPE;
+        // we only need the column names and will send values as string literals,
+        // letting Postgres cast as needed.
         let fields = gettablecol::get_table_col(&mut conn, table_name, database).unwrap();
         println!("Fields: {:?}", fields);
         self.table_name = String::from(table_name);
         self.table_fields = fields;
-        self.table_types = types;
+        self.table_types = Vec::new();
     }
     pub fn compare_fields(&mut self, data: &Vec<Vec<(String, String)>>) -> bool {
         //default to false
@@ -78,76 +73,27 @@ impl TableDef {
         stmt.push_str(") VALUES (");
         for data in date.iter() {
             for i in 0..data.len() {
-                let valuedata = data[i].1.replace("\"", "");
+                let mut valuedata = data[i].1.replace("\"", "");
+                // Escape single quotes for SQL literal
+                valuedata = valuedata.replace("'", "''");
 
-                let typestring =
-                    &self.compare_types(&data[i].0, &self.table_fields, &self.table_types);
-
-                match typestring.as_str() {
-                    "int(11)" => {
-                        stmt.push_str(&valuedata);
-                    }
-                    "varchar(255)" => {
-                        stmt.push_str("'");
-                        stmt.push_str(&valuedata);
-                        stmt.push_str("'");
-                    }
-                    "int(100)" => {
-                        stmt.push_str(&valuedata);
-                    }
-                    "varchar(100)" => {
-                        stmt.push_str("'");
-                        stmt.push_str(&valuedata);
-                        stmt.push_str("'");
-                    }
-                    "text" => {
-                        stmt.push_str("'");
-                        stmt.push_str(&valuedata);
-                        stmt.push_str("'");
-                    }
-                    "datetime" => {
-                        stmt.push_str("'");
-                        stmt.push_str(&valuedata);
-                        stmt.push_str("'");
-                    }
-                    "boolean" => {
-                        stmt.push_str(&valuedata);
-                    }
-                    "tinyint(1)" => {
-                        stmt.push_str(&valuedata);
-                    }
-                    "date" => {
-                        stmt.push_str("'");
-                        stmt.push_str(&valuedata);
-                        stmt.push_str("'");
-                    }
-                    _ => {
-                        stmt.push_str("NULL");
-                    }
-                }
+                // For Postgres we send everything as a quoted string literal and
+                // let the engine cast to the target column type.
+                stmt.push_str("'");
+                stmt.push_str(&valuedata);
+                stmt.push_str("'");
 
                 if i != data.len() - 1 {
                     stmt.push_str(", ");
                 }
             }
-            //if data != &date[date.len() - 1] {
             stmt.push_str("), (");
-            //}
         }
-        //stmt.push_str(")");
+        // remove the trailing `, (`
         stmt.pop();
         stmt.pop();
         stmt.pop();
         stmt
-    }
-    fn compare_types(&self, column: &str, fields: &Vec<String>, types: &Vec<String>) -> String {
-        let colstring = String::from(column);
-        for i in 0..fields.len() {
-            if fields[i] == colstring {
-                return types[i].clone();
-            }
-        }
-        String::from("NULL")
     }
 }
 pub fn insert_attachment(
@@ -177,6 +123,8 @@ pub fn insert_attachment(
 }
 pub fn exec_insert(statement: String) -> Result<String> {
     let mut conn = dbconnect::internalqueryconn();
-    conn.query_drop(statement).unwrap();
+    sql_query(statement)
+        .execute(&mut conn)
+        .expect("Insert failed");
     Ok(String::from("Success"))
 }

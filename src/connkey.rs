@@ -5,7 +5,8 @@
 //4. if apikey not found return error
 
 use data_encoding::HEXUPPER;
-use mysql::prelude::Queryable;
+use diesel::prelude::*;
+use diesel::sql_query;
 use ring::digest::{Context, SHA256};
 
 use crate::dbconnect;
@@ -22,7 +23,9 @@ impl ApiKey {
         }
     }
     pub fn populatekey(&mut self, database: String) {
-        let salt = std::env::args().nth(3).expect("no salt provided");
+        // Legacy API-key generation no longer relies on a CLI-provided salt.
+        // Use a fixed salt to avoid panics when no CLI args are present.
+        let salt = std::env::var("APIKEY_SALT").unwrap_or_else(|_| "legacy-salt".to_string());
         let mut apikey = String::new();
         let mut ctx = Context::new(&SHA256);
         ctx.update(database.as_bytes());
@@ -37,12 +40,18 @@ impl ApiKey {
 
 pub fn execute_apikey(stmt: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut conn = dbconnect::internalqueryconnapikey();
-    let mut keyvec: Vec<String> = Vec::new();
-    let _ = conn.query_map(stmt, |apikey| {
-        keyvec.push(apikey);
-    })?;
+    #[derive(QueryableByName)]
+    struct ApiKeyRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        apikey: String,
+    }
 
-    Ok(keyvec[0].clone())
+    let rows: Vec<ApiKeyRow> = sql_query(stmt).load(&mut conn)?;
+    if rows.is_empty() {
+        Err("No API key found".into())
+    } else {
+        Ok(rows[0].apikey.clone())
+    }
 }
 
 pub fn generate_apikey(database: &String) -> Result<String, Box<dyn std::error::Error>> {
@@ -53,35 +62,37 @@ pub fn generate_apikey(database: &String) -> Result<String, Box<dyn std::error::
 }
 pub fn search_apikey(database: &str, apikey: &str) -> Result<bool, Box<dyn std::error::Error>> {
     let mut conn = dbconnect::internalqueryconnapikey();
-    let mut stmt = String::from("SELECT apikey FROM ApiKey.apikeys WHERE databaseuser= '");
+    let mut stmt = String::from("SELECT apikey FROM apikeys WHERE databaseuser= '");
     stmt.push_str(&database);
     stmt.push_str("'");
 
-    let mut keyvec: Vec<String> = Vec::new();
+    #[derive(QueryableByName)]
+    struct ApiKeyRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        apikey: String,
+    }
 
-    let _ = conn.query_map(stmt, |apikey| {
-        keyvec.push(apikey);
-    })?;
-
-    if apikey == keyvec[0] {
-        return Ok(true);
+    let rows: Vec<ApiKeyRow> = sql_query(stmt).load(&mut conn)?;
+    if rows.is_empty() {
+        Ok(false)
     } else {
-        return Ok(false);
+        Ok(apikey == rows[0].apikey)
     }
 }
 pub fn search_apikey_admin(apikey: &str) -> Result<bool, Box<dyn std::error::Error>> {
     let mut conn = dbconnect::internalqueryconnapikey();
     let stmt = String::from("SELECT apikey FROM apikeys WHERE databaseuser= 'root'");
-    let mut keyvec: Vec<String> = Vec::new();
+    #[derive(QueryableByName)]
+    struct ApiKeyRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        apikey: String,
+    }
 
-    let _ = conn.query_map(stmt, |apikey| {
-        keyvec.push(apikey);
-    })?;
-
-    if apikey == keyvec[0] {
-        return Ok(true);
+    let rows: Vec<ApiKeyRow> = sql_query(stmt).load(&mut conn)?;
+    if rows.is_empty() {
+        Ok(false)
     } else {
-        return Ok(false);
+        Ok(apikey == rows[0].apikey)
     }
 }
 
@@ -100,7 +111,7 @@ pub fn insert_apikey(database: String, hash: String) -> Result<String, Box<dyn s
 
     stmt.push_str("')");
 
-    conn.query_drop(stmt)?;
+    sql_query(stmt).execute(&mut conn)?;
 
     Ok(apikey.apikey)
 }
@@ -123,16 +134,19 @@ pub fn read_hash(apikey: String) -> Result<Vec<String>, Box<dyn std::error::Erro
     let mut stmt =
         String::from("SELECT databaseuser, databasepasshash FROM apikeys WHERE apikey= ");
     stmt.push_str(&apikey);
-    let mut keyvec: Vec<String> = Vec::new();
+    #[derive(QueryableByName)]
+    struct HashRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        databaseuser: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        databasepasshash: String,
+    }
 
-    let query = conn.query_map(stmt, |user| {
-        keyvec.push(user);
-    })?;
+    let rows: Vec<HashRow> = sql_query(stmt).load(&mut conn)?;
 
-    if query.len() > 0 {
-        //return Ok(keyvec[0].clone());
-        return Ok(keyvec);
+    if let Some(row) = rows.get(0) {
+        Ok(vec![row.databaseuser.clone(), row.databasepasshash.clone()])
     } else {
-        return Err("No hash found".into());
+        Err("No hash found".into())
     }
 }

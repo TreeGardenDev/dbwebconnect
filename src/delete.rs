@@ -1,5 +1,12 @@
-use mysql::{prelude::Queryable, *};
-pub fn deleterecord(database: &str, table: &str, id: Vec<(String, String)>) -> Result<String> {
+use diesel::prelude::*;
+use diesel::sql_query;
+use crate::PooledConn;
+
+pub fn deleterecord(
+    database: &str,
+    table: &str,
+    id: Vec<(String, String)>,
+) -> std::result::Result<String, String> {
     //grab second string from tuple
     let mut stmt = String::from("DELETE FROM ");
     stmt.push_str(database);
@@ -19,7 +26,7 @@ pub fn deleterecord(database: &str, table: &str, id: Vec<(String, String)>) -> R
     Ok(stmt)
 }
 
-pub fn droptable(database: &str, table: &str) -> Result<String> {
+pub fn droptable(database: &str, table: &str) -> std::result::Result<String, String> {
     //grab second string from tuple
     let mut stmt = String::from("DROP TABLE ");
     stmt.push_str(database);
@@ -28,13 +35,15 @@ pub fn droptable(database: &str, table: &str) -> Result<String> {
     println!("{}", stmt);
     Ok(stmt)
 }
-pub fn exec_statement(conn: &mut PooledConn, stmt: &str) -> Result<String> {
+pub fn exec_statement(conn: &mut PooledConn, stmt: &str) -> std::result::Result<String, String> {
     //grab second string from tuple
     println!("{}", stmt);
-    conn.query_drop(stmt).unwrap();
+    sql_query(stmt)
+        .execute(conn)
+        .expect("Failed to execute DELETE/DROP statement");
     Ok(String::from("Executed"))
 }
-pub fn generate_backup(database: &str, table: &str) -> Result<String> {
+pub fn generate_backup(database: &str, table: &str) -> std::result::Result<String, String> {
     //grab second string from tuple
     let mut stmt = String::from("SELECT * INTO OUTFILE '/tmp/");
     stmt.push_str(database);

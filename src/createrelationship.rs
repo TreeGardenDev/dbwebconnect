@@ -1,4 +1,5 @@
-use mysql::prelude::Queryable;
+use diesel::prelude::*;
+use diesel::sql_query;
 
 use crate::dbconnect;
 use crate::Reader;
@@ -38,16 +39,15 @@ fn createrelationship(file: String) -> String {
     }
     String::from("Unable to create relationship")
 }
-
-pub fn commitrelationship(database: &str, file: String) -> Result<Vec<String>, mysql::Error> {
-    //pub fn commitrelationship(database: &str,table1:&str, col1:&str, table2:&str,
-    //col2:&str,ondelete:&str, onupdate:&str)->Result<Vec<String>, mysql::Error>{
+pub fn commitrelationship(
+    database: &str,
+    file: String,
+) -> Result<(), diesel::result::Error> {
     let relation = createrelationship(file);
-    //let relation=createrelationship_fromhtml(table1, col1, table2, col2, ondelete, onupdate);
     let mut conn = dbconnect::database_connection(database);
 
-    let result: Vec<String> = conn.query(relation)?;
-    return Ok(result);
+    sql_query(relation).execute(&mut conn)?;
+    Ok(())
 }
 
 pub fn commitrelationshipdefined(
@@ -58,13 +58,13 @@ pub fn commitrelationshipdefined(
     col2: &str,
     ondelete: &str,
     onupdate: &str,
-) -> Result<Vec<String>, mysql::Error> {
+) -> Result<(), diesel::result::Error> {
     let relation = createrelationship_fromhtml(table1, col1, table2, col2, ondelete, onupdate);
     println!("{}", relation);
     let mut conn = dbconnect::database_connection(database);
 
-    let result: Vec<String> = conn.query(relation)?;
-    return Ok(result);
+    sql_query(relation).execute(&mut conn)?;
+    Ok(())
 }
 
 fn createrelationship_fromhtml(
@@ -153,9 +153,9 @@ pub fn createrelationshipfromweb(database: &str, json: Vec<(String, String)>) ->
     println!("{}", query);
     return query;
 }
-pub fn commitrelationshipfromweb(statement: String) -> Result<String, mysql::Error> {
+pub fn commitrelationshipfromweb(statement: String) -> Result<String, diesel::result::Error> {
     let mut conn = dbconnect::internalqueryconn();
-    conn.query_drop(statement)?;
+    sql_query(statement).execute(&mut conn)?;
 
-    return Ok(String::from("Success"));
+    Ok(String::from("Success"))
 }

@@ -1,9 +1,12 @@
-use mysql::prelude::*;
-use mysql::*;
-//read from csv file to create table in mariadb with given column names
+use diesel::prelude::*;
+use diesel::sql_query;
+use crate::PooledConn;
+//read from csv file to create table in postgres with given column names
 
 pub fn exec_statement(conn: &mut PooledConn, statement: &str) {
-    conn.query_drop(statement).unwrap();
+    sql_query(statement)
+        .execute(conn)
+        .expect("Failed to execute DDL statement");
 }
 pub fn create_table(
     conn: &mut PooledConn,
@@ -29,7 +32,9 @@ pub fn create_table(
     query.pop();
     query.push_str(")");
     println!("{}", query);
-    conn.query_drop(query).unwrap();
+    sql_query(query)
+        .execute(conn)
+        .expect("Failed to create table");
 }
 pub fn create_table_web(
     database: &str,
@@ -42,25 +47,30 @@ pub fn create_table_web(
     query.push_str(".");
     query.push_str(table_name);
     query.push_str(" (");
-    query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
+    query.push_str("INTERNAL_PRIMARY_KEY SERIAL PRIMARY KEY, ");
     for i in 0..column_names.len() {
-        let valid = validate_unprotected_term(column_names[i].0.as_str());
+        // validate the actual column name (the value part)
+        let valid = validate_unprotected_term(column_names[i].1.as_str());
         if valid.0 == false {
-            println!("Invalid column name: {}", column_names[i].0);
+            println!("Invalid column name: {}", column_names[i].1);
             let mut error = String::from("Invalid column name: ");
-            error.push_str(column_names[i].0.as_str());
+            error.push_str(column_names[i].1.as_str());
             return error;
         }
-        query.push_str(column_names[i].1.as_str());
+        let col_name = column_names[i].1.as_str();
+        let col_type = column_types[i].1.as_str();
+
+        query.push_str(col_name);
         query.push_str(" ");
-        query.push_str(column_types[i].1.as_str());
+        query.push_str(col_type);
         //grab first 7 characters of column type
         //
 
-        if column_types[i].1.get(0..7) == Some("VARCHAR") {
-            query.push_str(" DEFAULT \"\"");
+        if col_type.get(0..7) == Some("VARCHAR") {
+            // Use single quotes for empty string default in Postgres
+            query.push_str(" DEFAULT ''");
         }
-        if column_types[i].1.get(0..3) == Some("INT") {
+        if col_type.get(0..3) == Some("INT") {
             query.push_str(" DEFAULT 0");
         }
 
@@ -81,12 +91,12 @@ pub fn create_table_web_gps(database: &str, table_name: &str) -> String {
     query.push_str(table_name);
     query.push_str("_GPS");
     query.push_str(" (");
-    query.push_str("INTERNAL_PRIMARY_KEY INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
+    query.push_str("INTERNAL_PRIMARY_KEY SERIAL PRIMARY KEY, ");
     query.push_str("MAIN_TABLE_ID INT, ");
     query.push_str("GPS_ID INT, ");
     query.push_str("X_COORD VARCHAR(100), ");
     query.push_str("Y_COORD VARCHAR(100), ");
-    query.push_str("Attachment BLOB, ");
+    query.push_str("Attachment BYTEA, ");
     //for i in 0..column_names.len() {
     //    let valid=validate_unprotected_term(column_names[i].1.as_str());
     //    if valid.0==false{
@@ -109,8 +119,12 @@ pub fn create_table_web_gps(database: &str, table_name: &str) -> String {
 pub fn parse_json(json: Vec<(String, String)>) -> (Vec<(String, String)>, Vec<(String, String)>) {
     let mut columnstr = json[0].1.clone();
     let mut datatypestr = json[1].1.clone();
+    // remove wrapping quotes and backslashes from the JSON-encoded arrays
+    // first drop any plain double quotes that weren't escaped
     columnstr = columnstr.replace("\"", "");
     datatypestr = datatypestr.replace("\"", "");
+    columnstr = columnstr.replace("\\\"", "");
+    datatypestr = datatypestr.replace("\\\"", "");
     columnstr = columnstr.replace("[", "");
     datatypestr = datatypestr.replace("[", "");
     columnstr = columnstr.replace("]", "");
@@ -129,6 +143,9 @@ pub fn parse_json(json: Vec<(String, String)>) -> (Vec<(String, String)>, Vec<(S
     datatypestr = datatypestr.replace("{", "");
     columnstr = columnstr.replace("}", "");
     datatypestr = datatypestr.replace("}", "");
+    // remove any backslashes left from JSON escaping
+    columnstr = columnstr.replace("\\", "");
+    datatypestr = datatypestr.replace("\\", "");
 
     let column = columnstr.split(",");
     let datatype = datatypestr.split(",");
